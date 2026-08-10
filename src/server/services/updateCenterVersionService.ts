@@ -45,8 +45,17 @@ export type DockerHubTagCandidates = {
 };
 
 const STABLE_SEMVER_PATTERN = /^v?(\d+)\.(\d+)\.(\d+)(?:\+[\w.-]+)?$/i;
-const GITHUB_RELEASES_URL = 'https://api.github.com/repos/cita-777/metapi/releases';
-const DOCKER_HUB_TAGS_URL = 'https://hub.docker.com/v2/repositories/1467078763/metapi/tags?page_size=100';
+// The update-center polls GitHub Releases and Docker Hub registries for new
+// versions. The default endpoints point at the upstream project; a private fork
+// can override them via env so it never checks the original author's repos.
+function getGitHubReleasesUrl(): string {
+  return (process.env.UPDATE_CENTER_GITHUB_RELEASES_URL || '').trim()
+    || 'https://api.github.com/repos/cita-777/metapi/releases';
+}
+function getDockerHubTagsUrl(): string {
+  return (process.env.UPDATE_CENTER_DOCKER_HUB_TAGS_URL || '').trim()
+    || 'https://hub.docker.com/v2/repositories/1467078763/metapi/tags?page_size=100';
+}
 const UPDATE_CENTER_VERSION_FETCH_TIMEOUT_MS = 5_000;
 const PREFERRED_DOCKER_HUB_TAG_ALIASES = ['latest', 'main'] as const;
 const MAX_RECENT_NON_STABLE_DOCKER_HUB_TAGS = 5;
@@ -281,7 +290,7 @@ export function resolvePreferredDeploySource(input: {
 }
 
 export async function fetchLatestStableGitHubRelease(): Promise<UpdateCenterVersionCandidate | null> {
-  const releases = await fetchJsonWithTimeout(GITHUB_RELEASES_URL, {
+  const releases = await fetchJsonWithTimeout(getGitHubReleasesUrl(), {
     headers: {
       accept: 'application/vnd.github+json',
       'user-agent': 'metapi-update-center/1.0',
@@ -295,7 +304,7 @@ export async function fetchLatestDockerHubTag(): Promise<UpdateCenterVersionCand
 }
 
 export async function fetchDockerHubTagCandidates(): Promise<DockerHubTagCandidates> {
-  const payload = await fetchJsonWithTimeout(DOCKER_HUB_TAGS_URL, {
+  const payload = await fetchJsonWithTimeout(getDockerHubTagsUrl(), {
     headers: {
       accept: 'application/json',
       'user-agent': 'metapi-update-center/1.0',
