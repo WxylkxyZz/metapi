@@ -1,6 +1,7 @@
 import { FastifyInstance } from 'fastify';
 import cron from 'node-cron';
 import { fetch } from 'undici';
+import { inArray } from 'drizzle-orm';
 import { config, normalizeTokenRouterFailureCooldownMaxSec } from '../../config.js';
 import { db, runtimeDbDialect, schema } from '../../db/index.js';
 import { upsertSetting } from '../../db/upsertSetting.js';
@@ -1986,8 +1987,55 @@ export async function settingsRoutes(app: FastifyInstance) {
 
   app.post('/api/settings/maintenance/clear-cache', async (_, reply) => {
     const deletedModelAvailability = (await db.delete(schema.modelAvailability).run()).changes;
-    const deletedRouteChannels = (await db.delete(schema.routeChannels).run()).changes;
-    const deletedTokenRoutes = (await db.delete(schema.tokenRoutes).run()).changes;
+
+    // Preserve user-defined rule routes (regex / wildcard / manual explicit groups) across a
+    // cache clear. Auto-rebuild only recreates exact model-pattern routes, so without this the
+    // clear would silently delete user's regex/wildcard rules and explicit groups forever.
+    //
+    // What we keep:
+    //   - routeMode === 'explicit_group'         (user-created explicit group)
+    //   - pattern routes whose modelPattern is a regex (re:...) or wildcard (* / ?)  (user rule)
+    //   - exact model-pattern routes referenced by any explicit_group                  (group members)
+    // What we delete: the remaining exact model-pattern routes (auto-generated, will be rebuilt)
+    const existingRoutes = await db.select().from(schema.tokenRoutes).all();
+    const groupSourceRows = await db.select().from(schema.routeGroupSources).all();
+    const referencedSourceRouteIds = new Set(groupSourceRows.map((row) => row.sourceRouteId));
+    const isExactPattern = (modelPattern: string): boolean => {
+      const normalized = modelPattern.trim();
+      if (!normalized) return false;
+      if (normalized.toLowerCase().startsWith('re:')) return false;
+      return !/[\*\?]/.test(normalized);
+    };
+    const preservedRouteIds = new Set<number>();
+    for (const route of existingRoutes) {
+      const routeMode = route.routeMode ?? 'pattern';
+      const modelPattern = (route.modelPattern || '').trim();
+      if (routeMode === 'explicit_group') {
+        preservedRouteIds.add(route.id);
+        continue;
+      }
+      if (!isExactPattern(modelPattern)) {
+        preservedRouteIds.add(route.id);
+        continue;
+      }
+      if (referencedSourceRouteIds.has(route.id)) {
+        preservedRouteIds.add(route.id);
+      }
+    }
+
+    const routesToDelete = preservedRouteIds.size === 0
+      ? existingRoutes
+      : existingRoutes.filter((route) => !preservedRouteIds.has(route.id));
+    const routeIdsToDelete = routesToDelete.map((route) => route.id);
+
+    let deletedTokenRoutes = 0;
+    let deletedRouteChannels = 0;
+    if (routeIdsToDelete.length > 0) {
+      deletedRouteChannels = (await db.delete(schema.routeChannels)
+        .where(inArray(schema.routeChannels.routeId, routeIdsToDelete)).run()).changes;
+      deletedTokenRoutes = (await db.delete(schema.tokenRoutes)
+        .where(inArray(schema.tokenRoutes.id, routeIdsToDelete)).run()).changes;
+    }
 
     const { task, reused } = startBackgroundTask(
       {
@@ -2014,6 +2062,7 @@ export async function settingsRoutes(app: FastifyInstance) {
       deletedModelAvailability,
       deletedRouteChannels,
       deletedTokenRoutes,
+      preservedRoutes: preservedRouteIds.size,
     });
   });
 
