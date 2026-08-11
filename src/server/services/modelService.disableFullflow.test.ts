@@ -161,4 +161,75 @@ describe('refreshModelsAndRebuildRoutes after disabling a model (full user flow)
     expect(remaining.map((c) => c.id)).not.toContain(channel.id);
     expect(remaining.map((c) => c.id)).toContain(channel2.id);
   });
+
+  it('removes a MANUAL channel (manualOverride) whose model is disabled for its site on rebuild', async () => {
+    const site = await db.insert(schema.sites).values({
+      name: 'site-manual',
+      url: 'https://site-manual.example.com',
+      platform: 'new-api',
+    }).returning().get();
+
+    const account = await db.insert(schema.accounts).values({
+      siteId: site.id,
+      username: 'user-manual',
+      accessToken: '',
+      apiToken: 'sk-manual',
+      status: 'active',
+      extraConfig: JSON.stringify({ credentialMode: 'apikey' }),
+    }).returning().get();
+
+    // A wildcard route with a MANUALLY-created channel (manualOverride=true), like a user
+    // would add by hand in the route UI for a regex/wildcard group.
+    const route = await db.insert(schema.tokenRoutes).values({
+      modelPattern: 'gpt-4*',
+      enabled: true,
+    }).returning().get();
+    const manualChannel = await db.insert(schema.routeChannels).values({
+      routeId: route.id,
+      accountId: account.id,
+      tokenId: null,
+      sourceModel: 'gpt-4o',
+      priority: 0,
+      weight: 10,
+      enabled: true,
+      manualOverride: true,
+    }).returning().get();
+
+    // A second manual channel on a different site serving a different model survives.
+    const site2 = await db.insert(schema.sites).values({
+      name: 'site-manual2',
+      url: 'https://site-manual2.example.com',
+      platform: 'new-api',
+    }).returning().get();
+    const account2 = await db.insert(schema.accounts).values({
+      siteId: site2.id,
+      username: 'user-manual2',
+      accessToken: '',
+      apiToken: 'sk-manual2',
+      status: 'active',
+      extraConfig: JSON.stringify({ credentialMode: 'apikey' }),
+    }).returning().get();
+    const manualChannel2 = await db.insert(schema.routeChannels).values({
+      routeId: route.id,
+      accountId: account2.id,
+      tokenId: null,
+      sourceModel: 'gpt-4o-mini',
+      priority: 0,
+      weight: 10,
+      enabled: true,
+      manualOverride: true,
+    }).returning().get();
+
+    // Disable gpt-4o for site 1 only.
+    await db.insert(schema.siteDisabledModels).values({
+      siteId: site.id,
+      modelName: 'gpt-4o',
+    }).run();
+
+    await refreshModelsAndRebuildRoutes();
+
+    const remaining = await db.select().from(schema.routeChannels).all();
+    expect(remaining.map((c) => c.id)).not.toContain(manualChannel.id);
+    expect(remaining.map((c) => c.id)).toContain(manualChannel2.id);
+  });
 });

@@ -1552,9 +1552,9 @@ export async function rebuildTokenRoutesFromAvailability() {
       continue; // exact routes already handled above
     }
     for (const channel of channels.filter((c) => c.routeId === route.id)) {
-      if (channel.manualOverride) {
-        continue; // never remove a manually overridden channel
-      }
+      // Manual channels are removed too: a disabled model must not keep a channel in the
+      // route no matter how it was created. The user expects disabling a model upstream to
+      // fully drop it from the route after an automatic rebuild.
       const siteId = siteIdByAccountId.get(channel.accountId);
       if (siteId == null) continue;
       const effectiveModel = (channel.sourceModel || modelPattern).trim();
