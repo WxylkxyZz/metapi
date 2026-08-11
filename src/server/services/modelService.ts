@@ -673,7 +673,7 @@ export async function refreshModelsForAccount(
     if (previousTokenModelAvailability.length > 0) {
       await db.insert(schema.tokenModelAvailability).values(
         previousTokenModelAvailability.map(({ id: _id, ...row }) => row),
-      ).run();
+      ).onConflictDoNothing().run();
     }
   };
 
@@ -1228,7 +1228,7 @@ export async function refreshModelsForAccount(
         latencyMs,
         checkedAt,
       })),
-    ).run();
+    ).onConflictDoNothing().run();
 
     scannedTokenCount++;
     mergeDiscoveredModels(models, latencyMs);
@@ -1266,7 +1266,7 @@ export async function refreshModelsForAccount(
         latencyMs: modelLatency.get(modelName.toLowerCase()) ?? null,
         checkedAt,
       })),
-    ).run();
+    ).onConflictDoNothing().run();
   }
 
   await setAccountRuntimeHealth(account.id, {
