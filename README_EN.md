@@ -24,8 +24,8 @@ balance tracking, and auto check-in.
 This is a **private fork** of Metapi for **personal use only**, not for public
 distribution.
 
-- The original author (cita-777) has stopped maintaining the project. This fork
-  continues with its own fixes and extensions.
+- This fork is maintained independently on top of the original Metapi codebase,
+  without depending on upstream updates.
 - Runtime ties to the original author's upstream have been cut (update-center
   polling, image pull, etc. are disabled).
 - Maintenance is done personally, cherry-picking upstream community patches as
