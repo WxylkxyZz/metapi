@@ -1215,7 +1215,30 @@ export async function refreshModelsForAccount(
       models = [];
     }
 
-    if (models.length === 0) continue;
+    if (models.length === 0) {
+      // The token's own /v1/models call was rate-limited (429) or failed. Fall back to the
+      // account-level models already discovered above (accountModels) so a session-mode token
+      // whose managed-token call is throttled still gets availability rows — otherwise the
+      // account's models never become route channels. This reuses the cached discovery and does
+      // NOT hit the upstream again (no probing, no extra rate-limit pressure).
+      const fallbackModels = Array.from(accountModels.values());
+      if (fallbackModels.length === 0) continue;
+
+      const fallbackCheckedAt = new Date().toISOString();
+      await db.insert(schema.tokenModelAvailability).values(
+        fallbackModels.map((modelName) => ({
+          tokenId: token.id,
+          modelName,
+          available: true,
+          latencyMs: modelLatency.get(modelName.toLowerCase()) ?? null,
+          checkedAt: fallbackCheckedAt,
+        })),
+      ).onConflictDoNothing().run();
+
+      scannedTokenCount++;
+      mergeDiscoveredModels(fallbackModels, null);
+      continue;
+    }
 
     const latencyMs = Date.now() - startedAt;
     const checkedAt = new Date().toISOString();

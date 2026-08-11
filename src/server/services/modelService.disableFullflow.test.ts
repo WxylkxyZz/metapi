@@ -232,4 +232,53 @@ describe('refreshModelsAndRebuildRoutes after disabling a model (full user flow)
     expect(remaining.map((c) => c.id)).not.toContain(manualChannel.id);
     expect(remaining.map((c) => c.id)).toContain(manualChannel2.id);
   });
+
+  it('falls back to account-level discovered models when a managed token call is rate-limited (429)', async () => {
+    const site = await db.insert(schema.sites).values({
+      name: 'site-token-429',
+      url: 'https://site-token-429.example.com',
+      platform: 'new-api',
+    }).returning().get();
+
+    const account = await db.insert(schema.accounts).values({
+      siteId: site.id,
+      username: 'user-token-429',
+      accessToken: '',
+      apiToken: 'sk-token-429',
+      status: 'active',
+      extraConfig: JSON.stringify({ credentialMode: 'session' }),
+    }).returning().get();
+
+    // A managed token for the session-mode account.
+    await db.insert(schema.accountTokens).values({
+      accountId: account.id,
+      name: 'default',
+      token: 'sk-token-429',
+      valueStatus: 'ready',
+      enabled: true,
+      isDefault: true,
+    }).run();
+
+    // Account-level discovery (first getModels call) succeeds with the real model list.
+    // The token-level call (second getModels call) is rate-limited with HTTP 429.
+    getModelsMock
+      .mockResolvedValueOnce(['gpt-4o', 'claude-sonnet-4-5-20250929'])
+      .mockRejectedValueOnce(new Error('HTTP 429: rate limited'));
+
+    const result = await refreshModelsAndRebuildRoutes();
+    expect((result as any).rebuild.models).toBe(2);
+
+    // The token's availability rows must be populated from the account-level fallback,
+    // so a route/channel is created for the session account.
+    const tma = await db.select().from(schema.tokenModelAvailability).all();
+    expect(tma.length).toBe(2);
+    expect(tma.every((r) => r.available)).toBe(true);
+
+    const routes = await db.select().from(schema.tokenRoutes).all();
+    expect(routes.map((r) => r.modelPattern).sort()).toEqual(['claude-sonnet-4-5-20250929', 'gpt-4o']);
+
+    const channels = await db.select().from(schema.routeChannels).all();
+    expect(channels.length).toBe(2);
+    expect(channels.every((c) => c.accountId === account.id)).toBe(true);
+  });
 });
