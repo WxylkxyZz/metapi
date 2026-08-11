@@ -38,6 +38,7 @@ describe('TokenRouter patterns and model mapping', () => {
     idSeed = 0;
     await db.delete(schema.routeChannels).run();
     await db.delete(schema.tokenRoutes).run();
+    await db.delete(schema.siteDisabledModels).run();
     await db.delete(schema.accountTokens).run();
     await db.delete(schema.accounts).run();
     await db.delete(schema.sites).run();
@@ -218,6 +219,36 @@ describe('TokenRouter patterns and model mapping', () => {
     expect(decision.actualModel).toBe('claude-opus-4-5');
   });
 
+
+
+  it('excludes a channel whose model is disabled for its site (Gap A)', async () => {
+    const site = await createSite('disable-site');
+    const account = await createAccount(site.id, 'disable-user');
+    const route = await db.insert(schema.tokenRoutes).values({
+      modelPattern: 'claude-opus-4-6',
+      enabled: true,
+    }).returning().get();
+    const channel = await db.insert(schema.routeChannels).values({
+      routeId: route.id,
+      accountId: account.id,
+      tokenId: null,
+      sourceModel: 'claude-opus-4-6',
+      priority: 0,
+      weight: 10,
+      enabled: true,
+    }).returning().get();
+
+    const router = new TokenRouter();
+    expect((await router.selectChannel('claude-opus-4-6'))?.channel.id).toBe(channel.id);
+
+    await db.insert(schema.siteDisabledModels).values({
+      siteId: site.id,
+      modelName: 'claude-opus-4-6',
+    }).run();
+    invalidateTokenRouterCache();
+
+    expect(await router.selectChannel('claude-opus-4-6')).toBeNull();
+  });
   it('falls back to the source exact-route model when explicit-group channels omit sourceModel', async () => {
     const source = await createRouteWithSingleChannel('claude-opus-4-5');
     await createExplicitGroupRoute('claude-test-4.6-sonnet', [source.route.id]);

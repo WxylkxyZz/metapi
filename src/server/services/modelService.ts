@@ -1534,6 +1534,38 @@ export async function rebuildTokenRoutesFromAvailability() {
     }
   }
 
+  // Clean up channels on non-exact (wildcard / regex / manual / group-source) routes whose
+  // effective source model has been disabled for their site. Exact-pattern auto routes are
+  // handled above (rebuilt from availability); these routes are not erased, only their now-
+  // disabled channels, so a disabled model can't keep being selected on a wildcard route.
+  const siteIdByAccountId = new Map<number, number>(
+    (await db.select({ id: schema.accounts.id, siteId: schema.accounts.siteId }).from(schema.accounts).all())
+      .map((row) => [row.id, row.siteId]),
+  );
+
+  for (const route of routes) {
+    if ((route.routeMode || 'pattern') === 'explicit_group') {
+      continue;
+    }
+    const modelPattern = (route.modelPattern || '').trim();
+    if (!modelPattern || isExactModelPattern(modelPattern)) {
+      continue; // exact routes already handled above
+    }
+    for (const channel of channels.filter((c) => c.routeId === route.id)) {
+      if (channel.manualOverride) {
+        continue; // never remove a manually overridden channel
+      }
+      const siteId = siteIdByAccountId.get(channel.accountId);
+      if (siteId == null) continue;
+      const effectiveModel = (channel.sourceModel || modelPattern).trim();
+      if (!effectiveModel) continue;
+      if (isModelDisabledForSite(siteId, effectiveModel)) {
+        await db.delete(schema.routeChannels).where(eq(schema.routeChannels.id, channel.id)).run();
+        removedChannels++;
+      }
+    }
+  }
+
   if (createdRoutes > 0 || createdChannels > 0 || removedChannels > 0 || removedRoutes > 0) {
     await clearAllRouteDecisionSnapshots();
   }

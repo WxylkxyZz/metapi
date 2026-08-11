@@ -1093,6 +1093,38 @@ let routeCacheSnapshot: RouteCacheSnapshot = {
 
 const routeMatchCache = new Map<number, RouteMatchCacheSnapshot>();
 
+// Site-level disabled-model cache (siteId -> Set<lowercased modelName>). Loaded lazily by
+// selection entry points and invalidated alongside the rest of the route cache. Without this,
+// the router would happily select a channel whose model was disabled for the account's site.
+type DisabledModelsCacheSnapshot = {
+  loadedAt: number;
+  bySite: Map<number, Set<string>>;
+};
+let disabledModelsCache: DisabledModelsCacheSnapshot = {
+  loadedAt: 0,
+  bySite: new Map(),
+};
+
+async function ensureDisabledModelsLoaded(nowMs = Date.now()): Promise<void> {
+  if (disabledModelsCache.bySite.size > 0 && isCacheFresh(disabledModelsCache.loadedAt, nowMs)) {
+    return;
+  }
+  const rows = await db.select().from(schema.siteDisabledModels).all();
+  const bySite = new Map<number, Set<string>>();
+  for (const row of rows) {
+    if (!bySite.has(row.siteId)) bySite.set(row.siteId, new Set());
+    bySite.get(row.siteId)!.add(row.modelName.toLowerCase());
+  }
+  disabledModelsCache = { loadedAt: nowMs, bySite };
+}
+
+function isSiteModelDisabled(siteId: number, modelName: string | null | undefined): boolean {
+  if (!modelName) return false;
+  const disabled = disabledModelsCache.bySite.get(siteId);
+  return !!disabled && disabled.has(modelName.toLowerCase().trim());
+}
+
+
 function resolveTokenRouterCacheTtlMs(): number {
   const raw = Math.trunc(config.tokenRouterCacheTtlMs || 0);
   return Math.max(100, raw);
@@ -1255,6 +1287,10 @@ export function invalidateTokenRouterCache(): void {
     routes: [],
   };
   routeMatchCache.clear();
+  disabledModelsCache = {
+    loadedAt: 0,
+    bySite: new Map(),
+  };
   stableFirstLastSelectedSiteByKey.clear();
   stableFirstObservationProgressByKey.clear();
   stableFirstObservationSiteCooldownByKey.clear();
@@ -3029,6 +3065,7 @@ export class TokenRouter {
   }
 
   private async findRoute(model: string, downstreamPolicy: DownstreamRoutingPolicy): Promise<RouteMatch | null> {
+    await ensureDisabledModelsLoaded();
     let routes = await loadEnabledRoutes();
 
     const supportedPatterns = Array.isArray(downstreamPolicy.supportedModels)
@@ -3056,6 +3093,7 @@ export class TokenRouter {
   }
 
   private async findRouteById(routeId: number, downstreamPolicy: DownstreamRoutingPolicy): Promise<RouteMatch | null> {
+    await ensureDisabledModelsLoaded();
     if (downstreamPolicy.allowedRouteIds.length > 0 && !downstreamPolicy.allowedRouteIds.includes(routeId)) {
       return null;
     }
@@ -3112,6 +3150,11 @@ export class TokenRouter {
 
     if (isSiteDisabled(memberCandidate.site.status)) {
       reasonParts.push(`站点状态=${memberCandidate.site.status || 'disabled'}`);
+    }
+
+    const effectiveMemberModel = normalizeChannelSourceModel(outerCandidate.channel.sourceModel) || options.requestedModel;
+    if (isSiteModelDisabled(memberCandidate.site.id, effectiveMemberModel)) {
+      reasonParts.push(`站点已禁用模型=${effectiveMemberModel}`);
     }
 
     const downstreamExclusionReason = this.resolveDownstreamExclusionReason(
@@ -3357,6 +3400,11 @@ export class TokenRouter {
 
     if (isSiteDisabled(candidate.site.status)) {
       reasonParts.push(`站点状态=${candidate.site.status || 'disabled'}`);
+    }
+
+    const effectiveModel = normalizeChannelSourceModel(candidate.channel.sourceModel) || options.requestedModel;
+    if (isSiteModelDisabled(candidate.site.id, effectiveModel)) {
+      reasonParts.push(`站点已禁用模型=${effectiveModel}`);
     }
 
     const downstreamExclusionReason = this.resolveDownstreamExclusionReason(candidate, options.downstreamPolicy);
