@@ -200,4 +200,63 @@ describe('account token coverage refresh', { timeout: 15_000 }, () => {
       }),
     ]);
   });
+
+  it('refreshes token coverage when a masked/pending token is completed (masked_pending → ready)', async () => {
+    const modelName = 'claude-opus-4-6';
+    const { account } = await seedAccount(modelName);
+
+    // Simulate a token that was synced from upstream in masked/"待补全" state.
+    const pending = await db.insert(schema.accountTokens).values({
+      accountId: account.id,
+      name: 'pending',
+      token: 'sk-original-masked',
+      valueStatus: 'masked_pending',
+      enabled: false,
+      isDefault: false,
+    }).returning().get();
+
+    // Before completion the model is considered "待补全/待注册站点".
+    const before = await readTokenCandidates();
+    expect(before.modelsWithoutToken[modelName]).toBeDefined();
+
+    // Completing the token: user pastes the plaintext token and enables it (mirrors Tokens.tsx saveEditPanel).
+    getModelsMock.mockImplementation(async (_url: string, credential: string) => {
+      if (credential === account.accessToken || credential === 'sk-completed-token') {
+        return [modelName];
+      }
+      return [];
+    });
+    const response = await app.inject({
+      method: 'PUT',
+      url: `/api/account-tokens/${pending.id}`,
+      payload: { token: 'sk-completed-token', enabled: true },
+    });
+    expect(response.statusCode).toBe(200);
+
+    const completed = await db.select()
+      .from(schema.accountTokens)
+      .where(eq(schema.accountTokens.id, pending.id))
+      .get();
+    expect(completed!.valueStatus).toBe('ready');
+    expect(completed!.enabled).toBe(true);
+
+    // The completion must have triggered per-token model discovery,
+    // so tokenModelAvailability now covers the model and the hint disappears.
+    const tokenAvailability = await db.select()
+      .from(schema.tokenModelAvailability)
+      .where(eq(schema.tokenModelAvailability.tokenId, pending.id))
+      .all();
+    expect(tokenAvailability.map((row) => row.modelName)).toContain(modelName);
+
+    const after = await readTokenCandidates();
+    expect(after.modelsWithoutToken[modelName]).toBeUndefined();
+    expect(after.models).toEqual({
+      [modelName]: [
+        expect.objectContaining({
+          accountId: account.id,
+          tokenId: pending.id,
+        }),
+      ],
+    });
+  });
 });

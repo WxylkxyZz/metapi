@@ -836,12 +836,20 @@ export async function accountTokensRoutes(app: FastifyInstance) {
       await repairDefaultToken(existing.accountId);
     }
 
+    // 令牌从"待补全"(masked_pending) 补全为明文(ready) 时，立即用新令牌重新探测模型并重建路由，
+    // 否则 tokenModelAvailability 不会出现该令牌的模型行，"待注册站点/待补全令牌" 提示无法消除，
+    // 且重建路由也建不出该令牌的通道。
+    const coverageRefresh = existing.valueStatus === ACCOUNT_TOKEN_VALUE_STATUS_MASKED_PENDING
+      && nextValueStatus === ACCOUNT_TOKEN_VALUE_STATUS_READY
+      ? await refreshCoverageForAccounts([existing.accountId])
+      : null;
+
     latest = await db.select().from(schema.accountTokens).where(eq(schema.accountTokens.id, tokenId)).get();
     if (!latest) {
       return reply.code(500).send({ success: false, message: '更新失败' });
     }
 
-    return { success: true, token: latest };
+    return { success: true, token: latest, coverageRefresh };
   });
 
   app.post<{ Params: { id: string } }>('/api/account-tokens/:id/default', async (request, reply) => {
