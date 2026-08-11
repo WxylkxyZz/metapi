@@ -19,7 +19,6 @@ import {
   visualRulesToPayloadRules,
 } from './settings/payloadRulesVisual.js';
 import { PAYLOAD_RULE_PROTOCOL_OPTIONS } from './settings/payloadRuleProtocolOptions.js';
-import UpdateCenterSection from './settings/UpdateCenterSection.js';
 import {
   applyRoutingProfilePreset,
   resolveRoutingProfilePreset,
@@ -2563,8 +2562,6 @@ export default function Settings() {
             </div>
           )}
         </div>
-
-        <UpdateCenterSection />
 
         <div className="card animate-slide-up stagger-6" style={{ padding: 20 }}>
           <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 12 }}>维护工具</div>

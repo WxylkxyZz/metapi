@@ -1235,43 +1235,6 @@ export const api = {
       method: "PUT",
       body: JSON.stringify(data),
     }),
-  getUpdateCenterStatus: () => request("/api/update-center/status"),
-  saveUpdateCenterConfig: (data: any) =>
-    request("/api/update-center/config", {
-      method: "PUT",
-      body: JSON.stringify(data),
-    }),
-  checkUpdateCenter: () =>
-    request("/api/update-center/check", {
-      method: "POST",
-      body: JSON.stringify({}),
-    }),
-  deployUpdateCenter: (data: {
-    source: "github-release" | "docker-hub-tag";
-    targetTag: string;
-    targetDigest?: string | null;
-  }) =>
-    request("/api/update-center/deploy", {
-      method: "POST",
-      body: JSON.stringify(data),
-    }),
-  rollbackUpdateCenter: (data: { targetRevision: string }) =>
-    request("/api/update-center/rollback", {
-      method: "POST",
-      body: JSON.stringify(data),
-    }),
-  streamUpdateCenterTaskLogs: (
-    taskId: string,
-    handlers: {
-      onLog?: (entry: any) => void;
-      onDone?: (payload: any) => void;
-      signal?: AbortSignal;
-    },
-  ) =>
-    streamSse(
-      `/api/update-center/tasks/${encodeURIComponent(taskId)}/stream`,
-      handlers,
-    ),
   testSystemProxy: (data: SystemProxyTestRequest) =>
     request("/api/settings/system-proxy/test", {
       method: "POST",

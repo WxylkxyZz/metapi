@@ -21,7 +21,6 @@ import { testRoutes } from './routes/api/test.js';
 import { downstreamApiKeysRoutes } from './routes/api/downstreamApiKeys.js';
 import { oauthRoutes } from './routes/api/oauth.js';
 import { siteAnnouncementsRoutes } from './routes/api/siteAnnouncements.js';
-import { updateCenterRoutes } from './routes/api/updateCenter.js';
 import { proxyRoutes } from './routes/proxy/router.js';
 import { startScheduler } from './services/checkinScheduler.js';
 import * as routeRefreshWorkflow from './services/routeRefreshWorkflow.js';
@@ -47,7 +46,6 @@ import {
   startSub2ApiManagedRefreshScheduler,
   stopSub2ApiManagedRefreshScheduler,
 } from './services/sub2apiRefreshScheduler.js';
-import { startUpdateCenterPolling, stopUpdateCenterPolling } from './services/updateCenterPollingService.js';
 import {
   startAdminSnapshotWarmScheduler,
   stopAdminSnapshotWarmScheduler,
@@ -222,7 +220,6 @@ await app.register(accountTokensRoutes);
 await app.register(searchRoutes);
 await app.register(eventsRoutes);
 await app.register(siteAnnouncementsRoutes);
-await app.register(updateCenterRoutes);
 await app.register(taskRoutes);
 await app.register(testRoutes);
 await app.register(downstreamApiKeysRoutes);
@@ -265,7 +262,6 @@ startSiteAnnouncementPolling();
 startModelAvailabilityProbeScheduler();
 startChannelRecoveryProbeScheduler();
 startSub2ApiManagedRefreshScheduler();
-startUpdateCenterPolling();
 startUsageAggregationProjectorScheduler();
 startAdminSnapshotWarmScheduler();
 try {
@@ -277,7 +273,6 @@ setLegacyProxyLogRetentionFallbackEnabled(!config.logCleanupConfigured);
 startProxyFileRetentionService();
 app.addHook('onClose', async () => {
   stopSiteAnnouncementPolling();
-  stopUpdateCenterPolling();
   stopProxyFileRetentionService();
   stopProxyLogRetentionService();
   stopModelAvailabilityProbeScheduler();
