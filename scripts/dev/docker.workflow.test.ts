@@ -3,17 +3,21 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 describe('docker workflows', () => {
-  it('publishes armv7 docker images in ci and release workflows', () => {
+  it('publishes amd64 and arm64 docker images in ci and release workflows (no armv7)', () => {
     const ciWorkflow = readFileSync(resolve(process.cwd(), '.github/workflows/ci.yml'), 'utf8');
     const releaseWorkflow = readFileSync(resolve(process.cwd(), '.github/workflows/release.yml'), 'utf8');
 
-    expect(ciWorkflow).toContain('arch: armv7');
-    expect(ciWorkflow).toContain('platform: linux/arm/v7');
-    expect(ciWorkflow).toContain('"${tag}-armv7"');
+    expect(ciWorkflow).toContain('arch: amd64');
+    expect(ciWorkflow).toContain('arch: arm64');
+    expect(ciWorkflow).not.toContain('arch: armv7');
+    expect(ciWorkflow).not.toContain('linux/arm/v7');
+    expect(ciWorkflow).not.toContain('"${tag}-armv7"');
 
-    expect(releaseWorkflow).toContain('arch: armv7');
-    expect(releaseWorkflow).toContain('platform: linux/arm/v7');
-    expect(releaseWorkflow).toContain('"${tag}-armv7"');
+    expect(releaseWorkflow).toContain('arch: amd64');
+    expect(releaseWorkflow).toContain('arch: arm64');
+    expect(releaseWorkflow).not.toContain('arch: armv7');
+    expect(releaseWorkflow).not.toContain('linux/arm/v7');
+    expect(releaseWorkflow).not.toContain('"${tag}-armv7"');
   });
 
   it('derives Docker Hub image names from the configured username secret', () => {
@@ -27,11 +31,11 @@ describe('docker workflows', () => {
     expect(releaseWorkflow).not.toContain('1467078763/metapi');
   });
 
-  it('uses an armv7-capable node base image in the Dockerfile', () => {
+  it('uses a Node 25 base image in the Dockerfile (no armv7 variant)', () => {
     const dockerfile = readFileSync(resolve(process.cwd(), 'docker/Dockerfile'), 'utf8');
 
-    expect(dockerfile).toContain('FROM node:22-bookworm-slim AS builder');
-    expect(dockerfile).toContain('FROM node:22-bookworm-slim');
+    expect(dockerfile).toContain('FROM node:25-bookworm-slim AS builder');
+    expect(dockerfile).toContain('FROM node:25-bookworm-slim');
   });
 
   it('avoids buildkit-only frontend syntax so managed docker builders can parse it reliably', () => {

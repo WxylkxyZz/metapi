@@ -12,13 +12,13 @@
     "claude",
     "aggregator"
   ],
-  "homepage": "https://github.com/cita-777/metapi#readme",
+  "homepage": "https://github.com/WxylkxyZz/metapi#readme",
   "bugs": {
-    "url": "https://github.com/cita-777/metapi/issues"
+    "url": "https://github.com/WxylkxyZz/metapi/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/cita-777/metapi.git"
+    "url": "git+https://github.com/WxylkxyZz/metapi.git"
   },
   "license": "MIT",
   "engines": {
@@ -130,8 +130,7 @@
     "minimist": "^1.2.8"
   },
   "author": {
-    "name": "cita-777",
-    "email": "cita-777@users.noreply.github.com",
-    "url": "https://github.com/cita-777"
+    "name": "WxylkxyZz",
+    "url": "https://github.com/WxylkxyZz"
   }
 }

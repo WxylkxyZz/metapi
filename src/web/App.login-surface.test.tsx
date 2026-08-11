@@ -12,11 +12,11 @@ function collectText(node: ReactTestInstance): string {
 
 describe('Login surface', () => {
   it('uses the site root as the documentation URL', () => {
-    expect(SITE_DOCS_URL).toBe('https://metapi.cita777.me');
+    expect(SITE_DOCS_URL).toBe('https://github.com/WxylkxyZz/metapi');
   });
 
   it('uses the author github profile for the login github shortcut', () => {
-    expect(SITE_GITHUB_URL).toBe('https://github.com/cita-777');
+    expect(SITE_GITHUB_URL).toBe('https://github.com/WxylkxyZz');
   });
 
   it('renders a poster-style hero with a floating admin login panel', () => {

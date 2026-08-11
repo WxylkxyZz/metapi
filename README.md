@@ -12,23 +12,12 @@
 
 
 <p align="center">
-<a href="https://github.com/cita-777/metapi/releases">
-  <img alt="GitHub Release" src="https://img.shields.io/github/v/release/cita-777/metapi?label=Release&logo=github&style=flat">
-</a><a href="https://github.com/cita-777/metapi/stargazers">
-  <img alt="GitHub Stars" src="https://img.shields.io/github/stars/cita-777/metapi?style=flat&logo=github&label=Stars">
-</a><a href="https://atomgit.com/cita-777/metapi">
-  <img alt="AtomGit Stars" src="https://atomgit.com/cita-777/metapi/star/badge.svg">
-</a><a href="https://deepwiki.com/cita-777/metapi">
-  <img alt="Ask DeepWiki" src="https://deepwiki.com/badge.svg">
-</a><a href="https://hub.docker.com/r/1467078763/metapi">
-  <img alt="Docker Pulls" src="https://img.shields.io/docker/pulls/1467078763/metapi?style=flat&logo=docker&label=Docker%20Pulls">
-</a><a href="https://hub.docker.com/r/1467078763/metapi">
-  <img alt="License" src="https://img.shields.io/badge/license-MIT-brightgreen?style=flat">
-</a><img alt="Node.js" src="https://img.shields.io/badge/Node.js-22.15%2B-339933?logo=node.js&style=flat"><img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript&style=flat"><a href="https://zeabur.com/templates/DOX5PR">
-  <img alt="Deploy on Zeabur" src="https://zeabur.com/button.svg" height="28">
-</a><a href="https://render.com/deploy?repo=https://github.com/cita-777/metapi">
-  <img alt="Deploy to Render" src="https://render.com/images/deploy-to-render-button.svg" height="28">
-</a>
+<a href="https://github.com/WxylkxyZz/metapi/releases">
+  <img alt="GitHub Release" src="https://img.shields.io/github/v/release/WxylkxyZz/metapi?label=Release&logo=github&style=flat">
+</a><a href="https://github.com/WxylkxyZz/metapi/stargazers">
+  <img alt="GitHub Stars" src="https://img.shields.io/github/stars/WxylkxyZz/metapi?style=flat&logo=github&label=Stars">
+</a><img alt="License" src="https://img.shields.io/badge/license-MIT-brightgreen?style=flat">
+</a><img alt="Node.js" src="https://img.shields.io/badge/Node.js-25%2B-339933?logo=node.js&style=flat"><img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript&style=flat">
 </p>
 
 <p align="center">
@@ -37,12 +26,12 @@
 </p>
 
 <p align="center">
-  <a href="https://metapi.cita777.me"><strong>📚 在线文档</strong></a> ·
-  <a href="https://metapi.cita777.me/getting-started">快速上手</a> ·
-  <a href="https://metapi.cita777.me/deployment">部署指南</a> ·
-  <a href="https://metapi.cita777.me/configuration">配置说明</a> ·
-  <a href="https://metapi.cita777.me/client-integration">客户端接入</a> ·
-  <a href="https://metapi.cita777.me/faq">常见问题</a>
+  <a href="https://github.com/WxylkxyZz/metapi"><strong>📚 在线文档</strong></a> ·
+  <a href="https://github.com/WxylkxyZz/metapi/tree/main/docs">快速上手</a> ·
+  <a href="https://github.com/WxylkxyZz/metapi/blob/main/docs/deployment.md">部署指南</a> ·
+  <a href="https://github.com/WxylkxyZz/metapi/blob/main/docs/configuration.md">配置说明</a> ·
+  <a href="https://github.com/WxylkxyZz/metapi/blob/main/docs/client-integration.md">客户端接入</a> ·
+  <a href="https://github.com/WxylkxyZz/metapi/blob/main/docs/faq.md">常见问题</a>
 </p>
 
 </div>
@@ -273,73 +262,34 @@
 ### 📦 轻量部署
 
 - **单 Docker 容器**，默认本地数据目录部署，支持外接 MySQL / PostgreSQL 运行时数据库
-- Docker 镜像支持 `amd64`、`arm64` 和 `armv7l`（`linux/arm/v7`）服务端部署
+- Docker 镜像支持 `amd64` 和 `arm64` 服务端部署
 - 数据完整导入导出，迁移无忧
 
 ---
 
 ## 🚀 快速开始
 
-<a href="https://zeabur.com/templates/DOX5PR">
-  <img alt="Deploy on Zeabur" src="https://zeabur.com/button.svg" height="28">
-</a>
-<a href="https://render.com/deploy?repo=https://github.com/cita-777/metapi">
-  <img alt="Deploy to Render" src="https://render.com/images/deploy-to-render-button.svg" height="28">
-</a>
+> 私有自用部署：本地 Docker 构建运行（见下方 Docker Compose 小节）。
 
 ### Docker Compose（推荐）
 
+私有 fork 采用本地构建，不拉取上游镜像。
+
 ```bash
-mkdir metapi && cd metapi
+git clone https://github.com/WxylkxyZz/metapi.git && cd metapi/docker
 
-cat > docker-compose.yml << 'EOF'
-services:
-  metapi:
-    image: 1467078763/metapi:latest
-    ports:
-      - "4000:4000"
-    volumes:
-      - ./data:/app/data
-    environment:
-      AUTH_TOKEN: ${AUTH_TOKEN:?AUTH_TOKEN is required}
-      PROXY_TOKEN: ${PROXY_TOKEN:?PROXY_TOKEN is required}
-      CHECKIN_CRON: "0 8 * * *"
-      BALANCE_REFRESH_CRON: "0 * * * *"
-      PORT: ${PORT:-4000}
-      DATA_DIR: /app/data
-      TZ: ${TZ:-Asia/Shanghai}
-    restart: unless-stopped
-EOF
+# 设置 Token（AUTH_TOKEN = 管理后台登录令牌，PROXY_TOKEN = 下游 /v1/* 令牌）
+cp .env.example .env
+# 编辑 .env 填入你的 AUTH_TOKEN 与 PROXY_TOKEN
 
-# 设置 Token 并启动
-# AUTH_TOKEN = 管理后台登录令牌（登录时输入此值）
-export AUTH_TOKEN=your-admin-token
-# PROXY_TOKEN = 下游客户端调用 /v1/* 的 Token
-export PROXY_TOKEN=your-proxy-sk-token
+docker compose build   # 本地构建镜像 metapi:local（docker-compose.override.yml 已配置）
 docker compose up -d
 ```
 
-<details>
-<summary><strong>一行 Docker 命令</strong></summary>
-
-```bash
-docker run -d --name metapi \
-  -p 4000:4000 \
-  -e AUTH_TOKEN=your-admin-token \
-  -e PROXY_TOKEN=your-proxy-sk-token \
-  -e TZ=Asia/Shanghai \
-  -v ./data:/app/data \
-  --restart unless-stopped \
-  1467078763/metapi:latest
-```
-
-</details>
-
-启动后访问 `http://localhost:4000`，用 `AUTH_TOKEN` 登录即可。
+启动后访问 `http://localhost:4000`，用 `AUTH_TOKEN` 登录即可。若需在无代理环境构建，将 `.env` 中的 `HTTP_PROXY`/`HTTPS_PROXY` 留空。
 
 > [!NOTE]
-> Docker 镜像支持 `amd64`、`arm64` 和 `armv7l`（`linux/arm/v7`）服务端部署。
-> 当前 `armv7l` 支持范围仅限服务端 / Docker 运行，不包含桌面安装包。
+> Docker 镜像支持 `amd64` 和 `arm64` 服务端部署。`linux/arm/v7` 不支持（Node 25 基础镜像不提供该架构）。
 
 <!-- markdownlint-disable-next-line MD028 -->
 > [!IMPORTANT]
@@ -351,9 +301,9 @@ docker run -d --name metapi \
 > 桌面安装包首次启动也属于这类场景：如果你没有额外注入 `AUTH_TOKEN`，默认管理员令牌同样是 `change-me-admin-token`。
 > 如果在「设置」面板中修改了管理员令牌，后续登录请使用新令牌。
 
-Docker Compose、桌面安装包、反向代理、升级与数据库选项等详见 [部署指南](https://metapi.cita777.me/deployment)。
+Docker Compose、桌面安装包、反向代理、升级与数据库选项等详见 [部署指南](https://github.com/WxylkxyZz/metapi/blob/main/docs/deployment.md)。
 
-📖 **[环境变量与配置](https://metapi.cita777.me/configuration)** · **[客户端接入指南](https://metapi.cita777.me/client-integration)** · **[常见问题](https://metapi.cita777.me/faq)**
+📖 **[环境变量与配置](https://github.com/WxylkxyZz/metapi/blob/main/docs/configuration.md)** · **[客户端接入指南](https://github.com/WxylkxyZz/metapi/blob/main/docs/client-integration.md)** · **[常见问题](https://github.com/WxylkxyZz/metapi/blob/main/docs/faq.md)**
 
 ---
 
@@ -430,9 +380,9 @@ Metapi 完全自托管，所有数据（账号、令牌、路由、日志）均�
 
 欢迎各种形式的贡献！
 
-- 🐛 报告 Bug — [提交 Issue](https://github.com/cita-777/metapi/issues)
-- 💡 功能建议 — [发起讨论](https://github.com/cita-777/metapi/issues)
-- 🔧 代码贡献 — [提交 Pull Request](https://github.com/cita-777/metapi/pulls)
+- 🐛 报告 Bug — [提交 Issue](https://github.com/WxylkxyZz/metapi/issues)
+- 💡 功能建议 — [发起讨论](https://github.com/WxylkxyZz/metapi/issues)
+- 🔧 代码贡献 — [提交 Pull Request](https://github.com/WxylkxyZz/metapi/pulls)
 - 📝 贡献指南 — [CONTRIBUTING.md](CONTRIBUTING.md)
 - 📜 行为准则 — [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
 
@@ -456,15 +406,15 @@ Metapi 完全自托管，所有数据（账号、令牌、路由、日志）均�
 
 特别感谢所有贡献者：
 
-<a href="https://github.com/cita-777/metapi/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=cita-777/metapi" alt="Contributors" />
+<a href="https://github.com/WxylkxyZz/metapi/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=WxylkxyZz/metapi" alt="Contributors" />
 </a>
 
 ---
 
 ## ⭐ Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=cita-777/metapi&type=date&legend=top-left&v=2)](https://www.star-history.com/#cita-777/metapi&type=date&legend=top-left)
+[![Star History Chart](https://api.star-history.com/svg?repos=WxylkxyZz/metapi&type=date&legend=top-left&v=2)](https://www.star-history.com/#WxylkxyZz/metapi&type=date&legend=top-left)
 
 ---
 

@@ -1,4 +1,4 @@
-appId: me.cita777.metapi.desktop
+appId: me.wxylkxyz.metapi.desktop
 productName: Metapi
 artifactName: ${name}-${version}-${os}-${arch}.${ext}
 directories:
@@ -27,10 +27,10 @@ linux:
     - AppImage
     - deb
     - rpm
-  maintainer: cita-777 <cita-777@users.noreply.github.com>
+  maintainer: WxylkxyZz <Wxylkxy@users.noreply.github.com>
 publish:
   provider: github
-  owner: cita-777
+  owner: WxylkxyZz
   repo: metapi
   releaseType: release
   publishAutoUpdate: true

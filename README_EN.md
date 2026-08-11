@@ -17,32 +17,17 @@ into <strong>one API Key, one endpoint</strong>, with automatic model discovery,
 </p>
 
 <p align="center">
-<a href="https://github.com/cita-777/metapi/releases">
-  <img alt="GitHub Release" src="https://img.shields.io/github/v/release/cita-777/metapi?label=Release&logo=github&style=flat">
+<a href="https://github.com/WxylkxyZz/metapi/releases">
+  <img alt="GitHub Release" src="https://img.shields.io/github/v/release/WxylkxyZz/metapi?label=Release&logo=github&style=flat">
 </a><!--
---><a href="https://github.com/cita-777/metapi/stargazers">
-  <img alt="GitHub Stars" src="https://img.shields.io/github/stars/cita-777/metapi?style=flat&logo=github&label=Stars">
-</a><!--
---><a href="https://deepwiki.com/cita-777/metapi">
-  <img alt="Ask DeepWiki" src="https://deepwiki.com/badge.svg">
-</a><!--
---><a href="https://hub.docker.com/r/1467078763/metapi">
-  <img alt="Docker Pulls" src="https://img.shields.io/docker/pulls/1467078763/metapi?style=flat&logo=docker&label=Docker%20Pulls">
-</a><!--
---><a href="https://hub.docker.com/r/1467078763/metapi">
-  <img alt="Docker Image" src="https://img.shields.io/badge/docker-1467078763%2Fmetapi-blue?logo=docker&style=flat">
+--><a href="https://github.com/WxylkxyZz/metapi/stargazers">
+  <img alt="GitHub Stars" src="https://img.shields.io/github/stars/WxylkxyZz/metapi?style=flat&logo=github&label=Stars">
 </a><!--
 --><a href="LICENSE">
   <img alt="License" src="https://img.shields.io/badge/license-MIT-brightgreen?style=flat">
 </a><!--
---><img alt="Node.js" src="https://img.shields.io/badge/Node.js-22.15%2B-339933?logo=node.js&style=flat"><!--
---><img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript&style=flat"><!--
---><a href="https://zeabur.com/templates/DOX5PR">
-  <img alt="Deploy on Zeabur" src="https://zeabur.com/button.svg" height="28">
-</a><!--
---><a href="https://render.com/deploy?repo=https://github.com/cita-777/metapi">
-  <img alt="Deploy to Render" src="https://render.com/images/deploy-to-render-button.svg" height="28">
-</a>
+--><img alt="Node.js" src="https://img.shields.io/badge/Node.js-25%2B-339933?logo=node.js&style=flat"><!--
+--><img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript&style=flat">
 </p>
 
 <p align="center">
@@ -51,12 +36,12 @@ into <strong>one API Key, one endpoint</strong>, with automatic model discovery,
 </p>
 
 <p align="center">
-  <a href="https://metapi.cita777.me"><strong>Docs</strong></a> ·
-  <a href="https://metapi.cita777.me/getting-started">Quick Start</a> ·
-  <a href="https://metapi.cita777.me/deployment">Deployment</a> ·
-  <a href="https://metapi.cita777.me/configuration">Configuration</a> ·
-  <a href="https://metapi.cita777.me/client-integration">Client Integration</a> ·
-  <a href="https://metapi.cita777.me/faq">FAQ</a> ·
+  <a href="https://github.com/WxylkxyZz/metapi"><strong>Docs</strong></a> ·
+  <a href="https://github.com/WxylkxyZz/metapi/tree/main/docs">Quick Start</a> ·
+  <a href="https://github.com/WxylkxyZz/metapi/blob/main/docs/deployment.md">Deployment</a> ·
+  <a href="https://github.com/WxylkxyZz/metapi/blob/main/docs/configuration.md">Configuration</a> ·
+  <a href="https://github.com/WxylkxyZz/metapi/blob/main/docs/client-integration.md">Client Integration</a> ·
+  <a href="https://github.com/WxylkxyZz/metapi/blob/main/docs/faq.md">FAQ</a> ·
   <a href="CONTRIBUTING.md">Contributing</a>
 </p>
 
@@ -296,7 +281,7 @@ Alert scenarios: low balance warning, site/account anomalies, check-in failures,
 ### Lightweight Deployment
 
 - **Single Docker container** with a default local data directory, plus optional external MySQL / PostgreSQL runtime DB
-- Docker images support `amd64`, `arm64`, and `armv7l` (`linux/arm/v7`) server deployments
+- Docker images support `amd64` and `arm64` server deployments
 - Full data import/export for worry-free migration
 
 ---
@@ -305,57 +290,23 @@ Alert scenarios: low balance warning, site/account anomalies, check-in failures,
 
 ### Docker Compose (Recommended)
 
+This private fork is built locally rather than pulling an upstream image.
+
 ```bash
-mkdir metapi && cd metapi
+git clone https://github.com/WxylkxyZz/metapi.git && cd metapi/docker
 
-cat > docker-compose.yml << 'EOF'
-services:
-  metapi:
-    image: 1467078763/metapi:latest
-    ports:
-      - "4000:4000"
-    volumes:
-      - ./data:/app/data
-    environment:
-      AUTH_TOKEN: ${AUTH_TOKEN:?AUTH_TOKEN is required}
-      PROXY_TOKEN: ${PROXY_TOKEN:?PROXY_TOKEN is required}
-      CHECKIN_CRON: "0 8 * * *"
-      BALANCE_REFRESH_CRON: "0 * * * *"
-      PORT: ${PORT:-4000}
-      DATA_DIR: /app/data
-      TZ: ${TZ:-Asia/Shanghai}
-    restart: unless-stopped
-EOF
+# Set tokens (AUTH_TOKEN = admin login, PROXY_TOKEN = downstream /v1/* token)
+cp .env.example .env
+# Edit .env and set your AUTH_TOKEN and PROXY_TOKEN
 
-# Set tokens and start
-# AUTH_TOKEN = Admin panel login token (enter this value when logging in)
-export AUTH_TOKEN=your-admin-token
-# PROXY_TOKEN = Token for downstream clients to call /v1/*
-export PROXY_TOKEN=your-proxy-sk-token
+docker compose build   # build the local image metapi:local (configured in docker-compose.override.yml)
 docker compose up -d
 ```
 
-<details>
-<summary><strong>One-line Docker command</strong></summary>
-
-```bash
-docker run -d --name metapi \
-  -p 4000:4000 \
-  -e AUTH_TOKEN=your-admin-token \
-  -e PROXY_TOKEN=your-proxy-sk-token \
-  -e TZ=Asia/Shanghai \
-  -v ./data:/app/data \
-  --restart unless-stopped \
-  1467078763/metapi:latest
-```
-
-</details>
-
-After starting, visit `http://localhost:4000` and log in with your `AUTH_TOKEN`!
+After starting, visit `http://localhost:4000` and log in with your `AUTH_TOKEN`! To build without a proxy, leave `HTTP_PROXY`/`HTTPS_PROXY` empty in `.env`.
 
 > [!NOTE]
-> Docker images support `amd64`, `arm64`, and `armv7l` (`linux/arm/v7`) server deployments.
-> Current `armv7l` support is limited to server / Docker usage and does not include Electron desktop packaging support.
+> Docker images support `amd64` and `arm64` server deployments. `linux/arm/v7` is not supported (the Node 25 base image does not ship that architecture).
 
 <!-- markdownlint-disable-next-line MD028 -->
 > [!IMPORTANT]
@@ -553,9 +504,9 @@ Metapi is fully self-hosted. All data (accounts, tokens, routes, logs) stays in 
 
 All forms of contribution are welcome!
 
-- Report bugs — [Submit an Issue](https://github.com/cita-777/metapi/issues)
-- Feature suggestions — [Start a Discussion](https://github.com/cita-777/metapi/issues)
-- Code contributions — [Submit a Pull Request](https://github.com/cita-777/metapi/pulls)
+- Report bugs — [Submit an Issue](https://github.com/WxylkxyZz/metapi/issues)
+- Feature suggestions — [Start a Discussion](https://github.com/WxylkxyZz/metapi/issues)
+- Code contributions — [Submit a Pull Request](https://github.com/WxylkxyZz/metapi/pulls)
 - Contributing guide — [CONTRIBUTING.md](CONTRIBUTING.md)
 - Code of conduct — [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
 
@@ -590,7 +541,7 @@ Special thanks to all contributors:
 
 ## Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=cita-777/metapi&type=date&legend=top-left&v=2)](https://www.star-history.com/#cita-777/metapi&type=date&legend=top-left)
+[![Star History Chart](https://api.star-history.com/svg?repos=WxylkxyZz/metapi&type=date&legend=top-left&v=2)](https://www.star-history.com/#WxylkxyZz/metapi&type=date&legend=top-left)
 
 ---
 
