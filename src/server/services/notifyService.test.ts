@@ -1,17 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const sendMailMock = vi.fn();
-const createTransportMock = vi.fn(() => ({
-  sendMail: (...args: unknown[]) => sendMailMock(...args),
-}));
 const fetchMock = vi.fn();
-
-vi.mock('nodemailer', () => ({
-  default: {
-    createTransport: (...args: unknown[]) => (createTransportMock as any)(...args),
-  },
-  createTransport: (...args: unknown[]) => (createTransportMock as any)(...args),
-}));
 
 vi.mock('undici', () => ({
   fetch: (...args: unknown[]) => fetchMock(...args),
@@ -31,8 +20,6 @@ vi.mock('./siteProxy.js', () => ({
 describe('notifyService', () => {
   beforeEach(async () => {
     vi.resetModules();
-    sendMailMock.mockReset();
-    createTransportMock.mockClear();
     fetchMock.mockReset();
     withExplicitProxyRequestInitMock.mockClear();
 
@@ -42,38 +29,29 @@ describe('notifyService', () => {
     config.webhookUrl = '';
     config.barkEnabled = false;
     config.barkUrl = '';
-    config.serverChanEnabled = false;
-    config.serverChanKey = '';
     (config as any).telegramEnabled = false;
     (config as any).telegramBotToken = '';
     (config as any).telegramChatId = '';
     (config as any).telegramUseSystemProxy = false;
     config.systemProxyUrl = '';
     (config as any).telegramMessageThreadId = '';
-    config.smtpEnabled = true;
-    config.smtpHost = 'smtp.example.com';
-    config.smtpPort = 465;
-    config.smtpSecure = true;
-    config.smtpUser = 'demo-user';
-    config.smtpPass = 'demo-pass';
-    config.smtpFrom = 'sender@example.com';
-    config.smtpTo = 'receiver@example.com';
   });
 
   it('bypasses cooldown when bypassThrottle is enabled', async () => {
-    sendMailMock.mockResolvedValue({ accepted: ['receiver@example.com'] });
+    const { config } = await import('../config.js');
+    config.webhookEnabled = true;
+    config.webhookUrl = 'https://webhook.example.com/notify';
+    fetchMock.mockResolvedValue({ ok: true, status: 200 });
+
     const { sendNotification } = await import('./notifyService.js');
 
     await (sendNotification as any)('测试通知', 'same-message', 'info', { bypassThrottle: true });
     await (sendNotification as any)('测试通知', 'same-message', 'info', { bypassThrottle: true });
 
-    expect(sendMailMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
   it('throws when strict delivery is required and no channels are enabled', async () => {
-    const { config } = await import('../config.js');
-    config.smtpEnabled = false;
-
     const { sendNotification } = await import('./notifyService.js');
     await expect(
       (sendNotification as any)('测试通知', 'message', 'info', {
@@ -84,7 +62,10 @@ describe('notifyService', () => {
   });
 
   it('throws when strict delivery is required and all channel sends fail', async () => {
-    sendMailMock.mockRejectedValue(new Error('smtp auth failed'));
+    const { config } = await import('../config.js');
+    config.webhookEnabled = true;
+    config.webhookUrl = 'https://webhook.example.com/notify';
+    fetchMock.mockRejectedValue(new Error('webhook failed'));
     const { sendNotification } = await import('./notifyService.js');
 
     await expect(
@@ -92,7 +73,7 @@ describe('notifyService', () => {
         bypassThrottle: true,
         throwOnFailure: true,
       }),
-    ).rejects.toThrow(/smtp auth failed|通知发送失败/);
+    ).rejects.toThrow(/webhook failed|通知发送失败/);
   });
 
   it('includes failed channel details when all enabled channels fail', async () => {
@@ -101,7 +82,6 @@ describe('notifyService', () => {
     config.webhookUrl = 'https://webhook.example.com/notify';
     config.barkEnabled = true;
     config.barkUrl = 'https://api.day.app/mock-key';
-    config.smtpEnabled = false;
 
     fetchMock
       .mockResolvedValueOnce({
@@ -127,7 +107,6 @@ describe('notifyService', () => {
     const { config } = await import('../config.js');
     config.webhookEnabled = true;
     config.webhookUrl = 'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=demo-key';
-    config.smtpEnabled = false;
 
     fetchMock.mockResolvedValue({
       ok: true,
@@ -153,7 +132,6 @@ describe('notifyService', () => {
     const { config } = await import('../config.js');
     config.webhookEnabled = true;
     config.webhookUrl = 'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=demo-key';
-    config.smtpEnabled = false;
 
     fetchMock.mockResolvedValue({
       ok: true,
@@ -170,16 +148,20 @@ describe('notifyService', () => {
     ).rejects.toThrow(/企业微信|93000|invalid json/);
   });
 
-  it('includes local time and utc time labels in smtp payload', async () => {
-    sendMailMock.mockResolvedValue({ accepted: ['receiver@example.com'] });
+  it('includes local time and utc time labels in the webhook payload', async () => {
+    const { config } = await import('../config.js');
+    config.webhookEnabled = true;
+    config.webhookUrl = 'https://webhook.example.com/notify';
+    fetchMock.mockResolvedValue({ ok: true, status: 200 });
+
     const { sendNotification } = await import('./notifyService.js');
 
     await sendNotification('测试通知', 'message', 'info', { bypassThrottle: true });
 
-    expect(sendMailMock).toHaveBeenCalledTimes(1);
-    const payload = sendMailMock.mock.calls[0]?.[0] as { text?: string };
-    expect(payload?.text || '').toContain('Local Time:');
-    expect(payload?.text || '').toContain('UTC Time:');
+    const call = fetchMock.mock.calls[0] as [string, { body?: string }];
+    const payload = JSON.parse(call[1]?.body || '{}') as { localTime?: string; timeZone?: string };
+    expect(payload.localTime).toBeTruthy();
+    expect(payload.timeZone).toBeTruthy();
   });
 
   it('sends telegram message without topic when telegram thread id is empty', async () => {
@@ -188,7 +170,6 @@ describe('notifyService', () => {
     (config as any).telegramBotToken = '123456:telegram-token';
     (config as any).telegramChatId = '-1001234567890';
     (config as any).telegramMessageThreadId = '';
-    config.smtpEnabled = false;
 
     fetchMock.mockResolvedValue({
       ok: true,
@@ -222,7 +203,6 @@ describe('notifyService', () => {
     (config as any).telegramBotToken = '123456:telegram-token';
     (config as any).telegramChatId = '-1001234567890';
     (config as any).telegramMessageThreadId = '77';
-    config.smtpEnabled = false;
 
     fetchMock.mockResolvedValue({
       ok: true,
@@ -243,7 +223,6 @@ describe('notifyService', () => {
     (config as any).telegramBotToken = '123456:telegram-token';
     (config as any).telegramChatId = '-1001234567890';
     (config as any).telegramApiBaseUrl = 'https://tg-proxy.example.com/custom/';
-    config.smtpEnabled = false;
 
     fetchMock.mockResolvedValue({
       ok: true,
@@ -268,7 +247,6 @@ describe('notifyService', () => {
     (config as any).telegramChatId = '-1001234567890';
     (config as any).telegramUseSystemProxy = true;
     config.systemProxyUrl = 'http://127.0.0.1:7890';
-    config.smtpEnabled = false;
 
     fetchMock.mockResolvedValue({ ok: true, status: 200 });
 
@@ -292,7 +270,6 @@ describe('notifyService', () => {
     (config as any).telegramChatId = '-1001234567890';
     (config as any).telegramUseSystemProxy = false;
     config.systemProxyUrl = 'http://127.0.0.1:7890';
-    config.smtpEnabled = false;
 
     fetchMock.mockResolvedValue({ ok: true, status: 200 });
 
@@ -311,7 +288,6 @@ describe('notifyService', () => {
     const { config } = await import('../config.js');
     config.webhookEnabled = true;
     config.webhookUrl = 'https://open.feishu.cn/open-apis/bot/v2/hook/demo-token';
-    config.smtpEnabled = false;
 
     fetchMock.mockResolvedValue({
       ok: true,
@@ -336,7 +312,6 @@ describe('notifyService', () => {
     const { config } = await import('../config.js');
     config.webhookEnabled = true;
     config.webhookUrl = 'https://open.feishu.cn/open-apis/bot/v2/hook/demo-token';
-    config.smtpEnabled = false;
 
     fetchMock.mockResolvedValue({
       ok: true,
@@ -357,7 +332,6 @@ describe('notifyService', () => {
     const { config } = await import('../config.js');
     config.webhookEnabled = true;
     config.webhookUrl = 'https://open.larksuite.com/open-apis/bot/v2/hook/demo-token';
-    config.smtpEnabled = false;
 
     fetchMock.mockResolvedValue({
       ok: true,

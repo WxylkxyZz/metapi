@@ -21,7 +21,7 @@ Metapi 当前有三类主要配置入口：
 | 你要改什么 | 优先去哪里 | 说明 |
 |----------|------------|------|
 | 日常系统设置 | 管理后台「设置」 | 大部分运行时配置都在这里，保存后直接生效或按提示重启 |
-| 通知渠道 | 管理后台「通知设置」 | Webhook / Bark / Server酱 / Telegram / SMTP 都有 UI |
+| 通知渠道 | 管理后台「通知设置」 | Webhook / Bark / Telegram 都有 UI |
 | 下游项目级 Key | 管理后台「下游密钥」 | 不要再回到环境变量里硬塞 |
 | 首次启动令牌、端口、数据目录 | `.env` / 容器环境变量 | 这类属于部署级初始化 |
 | OAuth 客户端 ID / Secret | `.env` / 容器环境变量 | 当前没有 UI |
@@ -68,9 +68,7 @@ Metapi 当前有三类主要配置入口：
 |------|------|----------|
 | Webhook | 企业微信 / 飞书 / 通用 Webhook | 保存后即时生效 |
 | Bark | Bark 推送地址与开关 | 保存后即时生效 |
-| Server酱 | SendKey 与开关 | 保存后即时生效 |
 | Telegram | API Base URL、Chat ID、Topic ID、Bot Token、是否走系统代理 | 保存后即时生效 |
-| SMTP | SMTP 主机、端口、账号、密码、发件/收件地址 | 保存后即时生效 |
 | 告警冷静期 | `NOTIFY_COOLDOWN_SEC` | 保存后即时生效 |
 
 通知设置页面已经支持：
@@ -274,13 +272,6 @@ Metapi 当前的配置关系可以概括为：
 | `BARK_ENABLED` | 启用 Bark 推送 | `true` |
 | `BARK_URL` | Bark 推送地址 | 空 |
 
-### Server酱
-
-| UI / 变量 | 说明 | 默认值 |
-|--------|------|--------|
-| `SERVERCHAN_ENABLED` | 启用 Server酱 通知 | `true` |
-| `SERVERCHAN_KEY` | Server酱 SendKey | 空 |
-
 ### Telegram Bot
 
 | UI / 变量 | 说明 | 默认值 |
@@ -299,19 +290,6 @@ Metapi 当前的配置关系可以概括为：
 3. **填入位置**：优先去 **通知设置** 页面填写
 4. **大陆服务器反代**：如果服务器不能直连 Telegram，可在 UI 里填写 `Telegram API Base URL`
 5. **测试**：保存后直接点“发送测试通知”
-
-### SMTP 邮件
-
-| UI / 变量 | 说明 | 默认值 |
-|--------|------|--------|
-| `SMTP_ENABLED` | 启用邮件通知 | `false` |
-| `SMTP_HOST` | SMTP 服务器地址 | 空 |
-| `SMTP_PORT` | SMTP 端口 | `587` |
-| `SMTP_SECURE` | 使用 SSL/TLS | `false` |
-| `SMTP_USER` | SMTP 用户名 | 空 |
-| `SMTP_PASS` | SMTP 密码 | 空 |
-| `SMTP_FROM` | 发件人地址 | 空 |
-| `SMTP_TO` | 收件人地址 | 空 |
 
 ### 告警控制
 

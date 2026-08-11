@@ -1,7 +1,6 @@
 import { fetch } from 'undici';
 import { config } from '../config.js';
 import { withExplicitProxyRequestInit } from './siteProxy.js';
-import nodemailer, { type Transporter } from 'nodemailer';
 import {
   createNotificationSignature,
   evaluateNotificationThrottle,
@@ -10,7 +9,7 @@ import {
 } from './notificationThrottle.js';
 import { formatLocalDateTime, getResolvedTimeZone } from './localTimeService.js';
 
-type NotificationChannel = 'webhook' | 'bark' | 'serverchan' | 'telegram' | 'smtp';
+type NotificationChannel = 'webhook' | 'bark' | 'telegram';
 
 export type SendNotificationOptions = {
   bypassThrottle?: boolean;
@@ -26,42 +25,7 @@ export type NotificationDispatchResult = {
   failedChannels: NotificationChannel[];
 };
 
-let cachedSmtpFingerprint = '';
-let cachedTransporter: Transporter | null = null;
 const notificationThrottleState = new Map<string, NotificationThrottleState>();
-
-function getSmtpFingerprint() {
-  return [
-    config.smtpHost,
-    config.smtpPort,
-    config.smtpSecure ? '1' : '0',
-    config.smtpUser,
-    config.smtpPass,
-    config.smtpFrom,
-    config.smtpTo,
-  ].join('|');
-}
-
-function getSmtpTransporter() {
-  const fingerprint = getSmtpFingerprint();
-  if (cachedTransporter && cachedSmtpFingerprint === fingerprint) {
-    return cachedTransporter;
-  }
-
-  cachedTransporter = nodemailer.createTransport({
-    host: config.smtpHost,
-    port: config.smtpPort,
-    secure: config.smtpSecure,
-    auth: config.smtpUser
-      ? {
-        user: config.smtpUser,
-        pass: config.smtpPass,
-      }
-      : undefined,
-  });
-  cachedSmtpFingerprint = fingerprint;
-  return cachedTransporter;
-}
 
 function buildTimeFootnote(now: Date): string {
   const timeZone = getResolvedTimeZone();
@@ -241,28 +205,6 @@ export async function sendNotification(
     });
   }
 
-  if (config.serverChanEnabled && config.serverChanKey) {
-    const form = new URLSearchParams({
-      title,
-      desp: `${resolvedMessage}\n\nLevel: ${level}\n${timeFootnote}`,
-    });
-    tasks.push(
-      {
-        channel: 'serverchan',
-        run: async () => {
-          const response = await fetch(`https://sctapi.ftqq.com/${config.serverChanKey}.send`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: form.toString(),
-          });
-          if (!response.ok) {
-            throw new Error(`Server酱响应状态 ${response.status}`);
-          }
-        },
-      },
-    );
-  }
-
   if (config.telegramEnabled && config.telegramBotToken && config.telegramChatId) {
     const telegramApiBaseUrl = String(config.telegramApiBaseUrl || 'https://api.telegram.org').replace(/\/+$/, '');
     const telegramApiUrl = `${telegramApiBaseUrl}/bot${config.telegramBotToken}/sendMessage`;
@@ -299,27 +241,6 @@ export async function sendNotification(
         }
       },
     });
-  }
-
-  if (
-    config.smtpEnabled &&
-    config.smtpHost &&
-    config.smtpPort > 0 &&
-    config.smtpFrom &&
-    config.smtpTo
-  ) {
-    const transporter = getSmtpTransporter();
-    tasks.push(
-      {
-        channel: 'smtp',
-        run: () => transporter.sendMail({
-          from: config.smtpFrom,
-          to: config.smtpTo,
-          subject: `[metapi][${level.toUpperCase()}] ${title}`,
-          text: `${resolvedMessage}\n\nLevel: ${level}\n${timeFootnote}`,
-        }),
-      },
-    );
   }
 
   if (tasks.length === 0) {

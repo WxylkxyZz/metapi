@@ -217,7 +217,7 @@ docker compose up -d
 **A:**
 
 - 确认 `.gitignore` 包含 `.env`、`data/`、`tmp/`
-- 发布前执行一次密钥轮换（上游账号密码、通知 SMTP、Webhook 地址）
+- 发布前执行一次密钥轮换（上游账号密码、通知 Webhook / Bark / Telegram、代理令牌）
 - 使用全新仓库或清理 Git 历史后再公开
 - 检查备份 JSON 文件中是否包含凭证
 

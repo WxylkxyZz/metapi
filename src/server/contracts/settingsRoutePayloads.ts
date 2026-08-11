@@ -7,11 +7,8 @@ const runtimeSettingsPayloadSchema = z.object({
   modelAvailabilityProbeEnabled: z.boolean().optional(),
   webhookEnabled: z.boolean().optional(),
   barkEnabled: z.boolean().optional(),
-  serverChanEnabled: z.boolean().optional(),
   telegramEnabled: z.boolean().optional(),
   telegramUseSystemProxy: z.boolean().optional(),
-  smtpEnabled: z.boolean().optional(),
-  smtpSecure: z.boolean().optional(),
   logCleanupUsageLogsEnabled: z.boolean().optional(),
   logCleanupProgramLogsEnabled: z.boolean().optional(),
 }).passthrough();
@@ -93,20 +90,11 @@ function formatSettingsPayloadError(error: z.ZodError): string {
   if (firstPath === 'barkEnabled') {
     return 'Bark 开关格式无效：需要 boolean';
   }
-  if (firstPath === 'serverChanEnabled') {
-    return 'Server 酱开关格式无效：需要 boolean';
-  }
   if (firstPath === 'telegramEnabled') {
     return 'Telegram 开关格式无效：需要 boolean';
   }
   if (firstPath === 'telegramUseSystemProxy') {
     return 'Telegram 使用系统代理格式无效：需要 boolean';
-  }
-  if (firstPath === 'smtpEnabled') {
-    return 'SMTP 开关格式无效：需要 boolean';
-  }
-  if (firstPath === 'smtpSecure') {
-    return 'SMTP 安全连接格式无效：需要 boolean';
   }
   if (firstPath === 'logCleanupUsageLogsEnabled') {
     return '自动清理使用日志格式无效：需要 boolean';

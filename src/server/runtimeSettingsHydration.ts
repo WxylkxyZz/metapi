@@ -238,12 +238,6 @@ export function applyRuntimeSettings(settingsMap: Map<string, string>) {
   const barkEnabled = parseSettingFromMap<boolean>(settingsMap, 'bark_enabled');
   if (typeof barkEnabled === 'boolean') config.barkEnabled = barkEnabled;
 
-  const serverChanEnabled = parseSettingFromMap<boolean>(settingsMap, 'serverchan_enabled');
-  if (typeof serverChanEnabled === 'boolean') config.serverChanEnabled = serverChanEnabled;
-
-  const serverChanKey = parseSettingFromMap<string>(settingsMap, 'serverchan_key');
-  if (typeof serverChanKey === 'string') config.serverChanKey = serverChanKey;
-
   const telegramEnabled = parseSettingFromMap<boolean>(settingsMap, 'telegram_enabled');
   if (typeof telegramEnabled === 'boolean') config.telegramEnabled = telegramEnabled;
 
@@ -263,32 +257,6 @@ export function applyRuntimeSettings(settingsMap: Map<string, string>) {
 
   const telegramMessageThreadId = parseSettingFromMap<string>(settingsMap, 'telegram_message_thread_id');
   if (typeof telegramMessageThreadId === 'string') config.telegramMessageThreadId = telegramMessageThreadId;
-
-  const smtpEnabled = parseSettingFromMap<boolean>(settingsMap, 'smtp_enabled');
-  if (typeof smtpEnabled === 'boolean') config.smtpEnabled = smtpEnabled;
-
-  const smtpHost = parseSettingFromMap<string>(settingsMap, 'smtp_host');
-  if (typeof smtpHost === 'string') config.smtpHost = smtpHost;
-
-  const smtpPort = parseSettingFromMap<number>(settingsMap, 'smtp_port');
-  if (typeof smtpPort === 'number' && Number.isFinite(smtpPort) && smtpPort > 0) {
-    config.smtpPort = Math.trunc(smtpPort);
-  }
-
-  const smtpSecure = parseSettingFromMap<boolean>(settingsMap, 'smtp_secure');
-  if (typeof smtpSecure === 'boolean') config.smtpSecure = smtpSecure;
-
-  const smtpUser = parseSettingFromMap<string>(settingsMap, 'smtp_user');
-  if (typeof smtpUser === 'string') config.smtpUser = smtpUser;
-
-  const smtpPass = parseSettingFromMap<string>(settingsMap, 'smtp_pass');
-  if (typeof smtpPass === 'string') config.smtpPass = smtpPass;
-
-  const smtpFrom = parseSettingFromMap<string>(settingsMap, 'smtp_from');
-  if (typeof smtpFrom === 'string') config.smtpFrom = smtpFrom;
-
-  const smtpTo = parseSettingFromMap<string>(settingsMap, 'smtp_to');
-  if (typeof smtpTo === 'string') config.smtpTo = smtpTo;
 
   const notifyCooldownSec = parseSettingFromMap<number>(settingsMap, 'notify_cooldown_sec');
   if (typeof notifyCooldownSec === 'number' && Number.isFinite(notifyCooldownSec) && notifyCooldownSec >= 0) {

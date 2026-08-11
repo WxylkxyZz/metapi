@@ -80,22 +80,12 @@ interface RuntimeSettingsBody {
   barkUrl?: string;
   webhookEnabled?: boolean;
   barkEnabled?: boolean;
-  serverChanEnabled?: boolean;
-  serverChanKey?: string;
   telegramEnabled?: boolean;
   telegramApiBaseUrl?: string;
   telegramBotToken?: string;
   telegramChatId?: string;
   telegramUseSystemProxy?: boolean;
   telegramMessageThreadId?: string;
-  smtpEnabled?: boolean;
-  smtpHost?: string;
-  smtpPort?: number;
-  smtpSecure?: boolean;
-  smtpUser?: string;
-  smtpPass?: string;
-  smtpFrom?: string;
-  smtpTo?: string;
   notifyCooldownSec?: number;
   adminIpAllowlist?: string[] | string;
   routingFallbackUnitCost?: number;
@@ -587,15 +577,6 @@ function applyImportedSettingToRuntime(key: string, value: unknown) {
       config.barkEnabled = !!value;
       return;
     }
-    case 'serverchan_enabled': {
-      config.serverChanEnabled = !!value;
-      return;
-    }
-    case 'serverchan_key': {
-      if (typeof value !== 'string') return;
-      config.serverChanKey = value.trim();
-      return;
-    }
     case 'telegram_enabled': {
       config.telegramEnabled = !!value;
       return;
@@ -622,45 +603,6 @@ function applyImportedSettingToRuntime(key: string, value: unknown) {
     case 'telegram_message_thread_id': {
       if (typeof value !== 'string') return;
       config.telegramMessageThreadId = value.trim();
-      return;
-    }
-    case 'smtp_enabled': {
-      config.smtpEnabled = !!value;
-      return;
-    }
-    case 'smtp_host': {
-      if (typeof value !== 'string') return;
-      config.smtpHost = value.trim();
-      return;
-    }
-    case 'smtp_port': {
-      const n = Number(value);
-      if (!Number.isFinite(n) || n <= 0) return;
-      config.smtpPort = Math.trunc(n);
-      return;
-    }
-    case 'smtp_secure': {
-      config.smtpSecure = !!value;
-      return;
-    }
-    case 'smtp_user': {
-      if (typeof value !== 'string') return;
-      config.smtpUser = value.trim();
-      return;
-    }
-    case 'smtp_pass': {
-      if (typeof value !== 'string') return;
-      config.smtpPass = value.trim();
-      return;
-    }
-    case 'smtp_from': {
-      if (typeof value !== 'string') return;
-      config.smtpFrom = value.trim();
-      return;
-    }
-    case 'smtp_to': {
-      if (typeof value !== 'string') return;
-      config.smtpTo = value.trim();
       return;
     }
     case 'notify_cooldown_sec': {
@@ -745,22 +687,12 @@ function getRuntimeSettingsResponse(currentAdminIp = '') {
     barkUrl: config.barkUrl,
     webhookEnabled: config.webhookEnabled,
     barkEnabled: config.barkEnabled,
-    serverChanEnabled: config.serverChanEnabled,
-    serverChanKeyMasked: maskSecret(config.serverChanKey),
     telegramEnabled: config.telegramEnabled,
     telegramApiBaseUrl: config.telegramApiBaseUrl,
     telegramBotTokenMasked: maskSecret(config.telegramBotToken),
     telegramChatId: config.telegramChatId,
     telegramUseSystemProxy: config.telegramUseSystemProxy,
     telegramMessageThreadId: config.telegramMessageThreadId,
-    smtpEnabled: config.smtpEnabled,
-    smtpHost: config.smtpHost,
-    smtpPort: config.smtpPort,
-    smtpSecure: config.smtpSecure,
-    smtpUser: config.smtpUser,
-    smtpPassMasked: maskSecret(config.smtpPass),
-    smtpFrom: config.smtpFrom,
-    smtpTo: config.smtpTo,
     notifyCooldownSec: config.notifyCooldownSec,
     adminIpAllowlist: config.adminIpAllowlist,
     currentAdminIp,
@@ -1500,22 +1432,6 @@ export async function settingsRoutes(app: FastifyInstance) {
       upsertSetting('bark_enabled', config.barkEnabled);
     }
 
-    if (body.serverChanEnabled !== undefined) {
-      if (!!body.serverChanEnabled !== config.serverChanEnabled) {
-        changedLabels.push('Server 酱开关');
-      }
-      config.serverChanEnabled = !!body.serverChanEnabled;
-      upsertSetting('serverchan_enabled', config.serverChanEnabled);
-    }
-
-    if (body.serverChanKey !== undefined) {
-      if (String(body.serverChanKey || '').trim() !== config.serverChanKey) {
-        changedLabels.push('Server 酱密钥');
-      }
-      config.serverChanKey = String(body.serverChanKey || '').trim();
-      upsertSetting('serverchan_key', config.serverChanKey);
-    }
-
     if (body.telegramEnabled !== undefined) {
       if (!!body.telegramEnabled !== config.telegramEnabled) {
         changedLabels.push('Telegram 开关');
@@ -1565,74 +1481,6 @@ export async function settingsRoutes(app: FastifyInstance) {
       }
       config.telegramMessageThreadId = nextTelegramMessageThreadId;
       upsertSetting('telegram_message_thread_id', config.telegramMessageThreadId);
-    }
-
-    if (body.smtpEnabled !== undefined) {
-      if (!!body.smtpEnabled !== config.smtpEnabled) {
-        changedLabels.push('SMTP 开关');
-      }
-      config.smtpEnabled = !!body.smtpEnabled;
-      upsertSetting('smtp_enabled', config.smtpEnabled);
-    }
-
-    if (body.smtpHost !== undefined) {
-      if (String(body.smtpHost || '').trim() !== config.smtpHost) {
-        changedLabels.push('SMTP 主机');
-      }
-      config.smtpHost = String(body.smtpHost || '').trim();
-      upsertSetting('smtp_host', config.smtpHost);
-    }
-
-    if (body.smtpPort !== undefined) {
-      const smtpPort = Number(body.smtpPort);
-      if (!Number.isFinite(smtpPort) || smtpPort <= 0) {
-        return reply.code(400).send({ success: false, message: 'SMTP 端口无效' });
-      }
-      if (Math.trunc(smtpPort) !== config.smtpPort) {
-        changedLabels.push(`SMTP 端口（${config.smtpPort} -> ${Math.trunc(smtpPort)}）`);
-      }
-      config.smtpPort = Math.trunc(smtpPort);
-      upsertSetting('smtp_port', config.smtpPort);
-    }
-
-    if (body.smtpSecure !== undefined) {
-      if (!!body.smtpSecure !== config.smtpSecure) {
-        changedLabels.push('SMTP 安全连接');
-      }
-      config.smtpSecure = !!body.smtpSecure;
-      upsertSetting('smtp_secure', config.smtpSecure);
-    }
-
-    if (body.smtpUser !== undefined) {
-      if (String(body.smtpUser || '').trim() !== config.smtpUser) {
-        changedLabels.push('SMTP 用户');
-      }
-      config.smtpUser = String(body.smtpUser || '').trim();
-      upsertSetting('smtp_user', config.smtpUser);
-    }
-
-    if (body.smtpPass !== undefined) {
-      if (String(body.smtpPass || '').trim() !== config.smtpPass) {
-        changedLabels.push('SMTP 密码');
-      }
-      config.smtpPass = String(body.smtpPass || '').trim();
-      upsertSetting('smtp_pass', config.smtpPass);
-    }
-
-    if (body.smtpFrom !== undefined) {
-      if (String(body.smtpFrom || '').trim() !== config.smtpFrom) {
-        changedLabels.push('发件人地址');
-      }
-      config.smtpFrom = String(body.smtpFrom || '').trim();
-      upsertSetting('smtp_from', config.smtpFrom);
-    }
-
-    if (body.smtpTo !== undefined) {
-      if (String(body.smtpTo || '').trim() !== config.smtpTo) {
-        changedLabels.push('收件人地址');
-      }
-      config.smtpTo = String(body.smtpTo || '').trim();
-      upsertSetting('smtp_to', config.smtpTo);
     }
 
     if (body.notifyCooldownSec !== undefined) {

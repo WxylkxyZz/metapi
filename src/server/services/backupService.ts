@@ -1278,10 +1278,6 @@ function isSettingValueAcceptable(key: string, value: unknown): boolean {
       && value.trim().startsWith('sk-');
   }
 
-  if (key === 'smtp_port') {
-    return isFiniteNumber(value) && value > 0;
-  }
-
   if (key === 'routing_weights') {
     if (!isRecord(value)) return false;
     const keys = ['baseWeightFactor', 'valueScoreFactor', 'costWeight', 'balanceWeight', 'usageWeight'] as const;
