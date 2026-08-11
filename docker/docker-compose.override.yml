@@ -1,9 +1,20 @@
 # docker-compose.override.yml
 # This file is automatically picked up by Docker Compose during local development.
 # It overrides the image reference in docker-compose.yml with a local build.
+#
+# Build-time proxy: for local builds behind a proxy, set HTTP_PROXY / HTTPS_PROXY
+# in docker/.env to the proxy URL reachable from the build container. On Docker
+# Desktop the host's proxy is reachable at http://host.docker.internal:PORT.
+# Leave them empty (default) to build without a proxy. The proxy is passed as a
+# build argument only — it is NOT baked into the resulting image.
 services:
   metapi:
     image: ~
     build:
       context: ..
       dockerfile: docker/Dockerfile
+      args:
+        HTTP_PROXY: ${HTTP_PROXY:-}
+        HTTPS_PROXY: ${HTTPS_PROXY:-}
+        http_proxy: ${HTTP_PROXY:-}
+        https_proxy: ${HTTPS_PROXY:-}
