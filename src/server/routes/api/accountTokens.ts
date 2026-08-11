@@ -20,6 +20,7 @@ import { getCredentialModeFromExtraConfig, getProxyUrlFromExtraConfig, resolvePl
 import { startBackgroundTask } from '../../services/backgroundTaskService.js';
 import { withAccountProxyOverride } from '../../services/siteProxy.js';
 import { type ModelRefreshResult } from '../../services/modelService.js';
+import { rebuildRoutesOnly } from '../../services/routeRefreshWorkflow.js';
 import {
   type CoverageBatchRebuildResult,
   convergeAccountMutation,
@@ -755,6 +756,15 @@ export async function accountTokensRoutes(app: FastifyInstance) {
       }
     }
 
+    // 启用/禁用令牌会改变可用通道集合，需重建路由以反映最新状态（仅读库，不触发上游测活）。
+    if (action === 'enable' || action === 'disable') {
+      try {
+        await rebuildRoutesOnly();
+      } catch (error: any) {
+        console.warn(`[account-tokens] route rebuild failed after batch ${action}: ${error?.message || 'unknown error'}`);
+      }
+    }
+
     return {
       success: true,
       successIds,
@@ -843,6 +853,16 @@ export async function accountTokensRoutes(app: FastifyInstance) {
       && nextValueStatus === ACCOUNT_TOKEN_VALUE_STATUS_READY
       ? await refreshCoverageForAccounts([existing.accountId])
       : null;
+
+    // 启用/禁用令牌会改变可用通道集合，需重建路由以反映最新状态（仅读库，不触发上游测活）。
+    // 注意：待补全令牌被强制置为禁用不在此列（其通道本就未建立）。
+    if (coverageRefresh === null && body.enabled !== undefined && body.enabled !== existing.enabled) {
+      try {
+        await rebuildRoutesOnly();
+      } catch (error: any) {
+        console.warn(`[account-tokens] route rebuild failed after token ${tokenId} enable/disable: ${error?.message || 'unknown error'}`);
+      }
+    }
 
     latest = await db.select().from(schema.accountTokens).where(eq(schema.accountTokens.id, tokenId)).get();
     if (!latest) {

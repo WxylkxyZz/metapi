@@ -17,7 +17,7 @@ import {
   resolvePlatformUserId,
   supportsDirectAccountRoutingConnection,
 } from './accountExtraConfig.js';
-import { invalidateTokenRouterCache } from './tokenRouter.js';
+import { invalidateTokenRouterCache, matchesModelPattern } from './tokenRouter.js';
 import { getBlockedBrandRules, isModelBlockedByBrand } from './brandMatcher.js';
 import { config } from '../config.js';
 import { setAccountRuntimeHealth } from './accountHealthService.js';
@@ -1562,6 +1562,79 @@ export async function rebuildTokenRoutesFromAvailability() {
       if (isModelDisabledForSite(siteId, effectiveModel)) {
         await db.delete(schema.routeChannels).where(eq(schema.routeChannels.id, channel.id)).run();
         removedChannels++;
+      }
+    }
+  }
+
+  // Re-match channels on non-exact (regex / wildcard) routes against the current candidate
+  // pool. Unlike the exact-pattern routes above (rebuilt purely from availability), these
+  // routes keep their rule and only gain channels: a newly available model (or a re-enabled
+  // token) matching the pattern must automatically appear after a rebuild. We never wholesale-
+  // remove non-candidate channels here — a channel with no availability data yet (e.g. a
+  // direct-account channel) must survive. Disabled tokens are handled below; disabled models
+  // are handled by the site-disabled prune above; manual channels are always kept.
+  for (const route of routes) {
+    if ((route.routeMode || 'pattern') === 'explicit_group') {
+      continue;
+    }
+    const modelPattern = (route.modelPattern || '').trim();
+    if (!modelPattern || isExactModelPattern(modelPattern)) {
+      continue; // exact routes already handled above
+    }
+    const routeChannels = channels.filter((c) => c.routeId === route.id);
+    const existingKeys = new Set(routeChannels.map((c) => buildChannelKey(c)));
+
+    // Add channels for every available candidate whose model matches the route's pattern.
+    for (const [modelName, candidateMap] of modelCandidates.entries()) {
+      if (!matchesModelPattern(modelName, modelPattern)) continue;
+      for (const [candidateKey, candidate] of candidateMap.entries()) {
+        if (existingKeys.has(candidateKey)) continue;
+        const inserted = await db.insert(schema.routeChannels).values({
+          routeId: route.id,
+          accountId: candidate.accountId,
+          tokenId: candidate.tokenId,
+          oauthRouteUnitId: candidate.oauthRouteUnitId,
+          priority: 0,
+          weight: 10,
+          enabled: true,
+          manualOverride: false,
+        }).run();
+        const insertedId = getInsertedRowId(inserted);
+        if (insertedId == null) continue;
+        const created = await db.select().from(schema.routeChannels).where(eq(schema.routeChannels.id, insertedId)).get();
+        if (!created) continue;
+        channels.push(created);
+        existingKeys.add(candidateKey);
+        createdChannels++;
+      }
+    }
+  }
+
+  // Remove automatic channels on non-exact (regex / wildcard / manual) routes whose token has
+  // been disabled. A disabled token's availability is excluded from the candidate pool, but
+  // unlike exact routes (which reconcile against it), a wildcard/regex route keeps its rule and
+  // would otherwise keep the stale channel forever. Disabled tokens must drop their channels so
+  // a re-enabled token can be re-matched on the next rebuild. Manual channels are kept.
+  const disabledTokenIds = new Set<number>(
+    (await db.select({ id: schema.accountTokens.id }).from(schema.accountTokens)
+      .where(eq(schema.accountTokens.enabled, false)).all())
+      .map((token) => token.id),
+  );
+  if (disabledTokenIds.size > 0) {
+    for (const route of routes) {
+      if ((route.routeMode || 'pattern') === 'explicit_group') {
+        continue;
+      }
+      const modelPattern = (route.modelPattern || '').trim();
+      if (!modelPattern || isExactModelPattern(modelPattern)) {
+        continue; // exact routes already handled above
+      }
+      for (const channel of channels.filter((c) => c.routeId === route.id)) {
+        if (channel.manualOverride) continue;
+        if (channel.tokenId != null && disabledTokenIds.has(channel.tokenId)) {
+          await db.delete(schema.routeChannels).where(eq(schema.routeChannels.id, channel.id)).run();
+          removedChannels++;
+        }
       }
     }
   }
