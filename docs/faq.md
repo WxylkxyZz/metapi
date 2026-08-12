@@ -90,7 +90,7 @@
 **A:** 先确认你输入的是管理员令牌，而不是代理令牌。登录后台使用的是 `AUTH_TOKEN`，注意：
 
 - 初始管理员令牌 = 启动时设置的 `AUTH_TOKEN`
-- 如果你在非 Compose 场景未显式设置 `AUTH_TOKEN`，默认值是 `change-me-admin-token`（仅建议本地调试）
+- 如果你在非 Compose 场景未显式设置 `AUTH_TOKEN`，默认值是 `123456`（仅建议本地调试）
 - 若复用旧 SQLite `data/` 目录，或当前实例已切到 MySQL / Postgres，系统会优先读取当前运行数据库中的 `auth_token` 设置（可能覆盖当前环境变量）
 - 使用 `.env` 文件时，确认文件路径正确，且值不需要加引号
 

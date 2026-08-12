@@ -104,8 +104,8 @@ Metapi 当前有三类主要配置入口：
 
 | 变量名 | 说明 | 默认值 |
 |--------|------|--------|
-| `AUTH_TOKEN` | 初始管理员登录令牌 | `change-me-admin-token` |
-| `PROXY_TOKEN` | 初始下游访问令牌 | `change-me-proxy-sk-token` |
+| `AUTH_TOKEN` | 初始管理员登录令牌 | `123456` |
+| `PROXY_TOKEN` | 初始下游访问令牌 | `sk-change-me` |
 | `PORT` | 服务监听端口 | `4000` |
 | `DATA_DIR` | 数据目录（SQLite 默认落这里） | `./data` |
 | `TZ` | 时区 | `Asia/Shanghai` |

@@ -1,6 +1,12 @@
 import Fastify from 'fastify';
 import { describe, expect, it } from 'vitest';
-import { buildConfig, buildFastifyOptions } from './config.js';
+import {
+  buildConfig,
+  buildFastifyOptions,
+  DEFAULT_ADMIN_TOKEN,
+  DEFAULT_PROXY_TOKEN,
+  isDefaultCredential,
+} from './config.js';
 
 describe('buildConfig', () => {
   it('defaults to external listen host for server deployments', () => {
@@ -105,5 +111,22 @@ describe('buildConfig', () => {
     expect(response.statusCode).toBe(200);
     expect(response.json()).toEqual({ ip: '203.0.113.5' });
     await app.close();
+  });
+
+  it('defaults auth/proxy tokens to the new insecure placeholders', () => {
+    const config = buildConfig({});
+    expect(config.authToken).toBe(DEFAULT_ADMIN_TOKEN);
+    expect(config.proxyToken).toBe(DEFAULT_PROXY_TOKEN);
+  });
+
+  it('flags default and legacy default credentials as insecure', () => {
+    expect(isDefaultCredential(DEFAULT_ADMIN_TOKEN, 'auth')).toBe(true);
+    expect(isDefaultCredential('change-me-admin-token' as string, 'auth')).toBe(true);
+    expect(isDefaultCredential(DEFAULT_PROXY_TOKEN, 'proxy')).toBe(true);
+    expect(isDefaultCredential('change-me-proxy-sk-token' as string, 'proxy')).toBe(true);
+    expect(isDefaultCredential('my-strong-secret', 'auth')).toBe(false);
+    expect(isDefaultCredential('sk-abcdef123456', 'proxy')).toBe(false);
+    expect(isDefaultCredential('', 'auth')).toBe(false);
+    expect(isDefaultCredential(undefined, 'proxy')).toBe(false);
   });
 });

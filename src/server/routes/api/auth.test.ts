@@ -63,4 +63,17 @@ describe('auth routes', () => {
       message: 'Invalid newToken. Expected string.',
     });
   });
+
+  it('reports admin token default status via auth/info', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/settings/auth/info',
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = response.json();
+    expect(typeof body.masked).toBe('string');
+    // beforeEach sets config.authToken = 'secret-token', which is not a default.
+    expect(body.isDefault).toBe(false);
+  });
 });

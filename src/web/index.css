@@ -4689,6 +4689,96 @@ textarea {
   color: color-mix(in srgb, var(--color-danger) 72%, black);
 }
 
+.default-credential-warning {
+  border: 1px solid color-mix(in srgb, var(--color-danger) 40%, transparent);
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--color-danger) 10%, transparent), transparent 55%),
+    var(--color-bg);
+  overflow: hidden;
+  position: relative;
+}
+
+.default-credential-warning::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: linear-gradient(180deg, var(--color-danger), color-mix(in srgb, var(--color-danger) 55%, transparent));
+}
+
+.default-credential-warning-inner {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.default-credential-warning-icon {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-danger);
+  background: color-mix(in srgb, var(--color-danger) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-danger) 28%, transparent);
+}
+
+.default-credential-warning-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.default-credential-warning-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-danger);
+  margin-bottom: 4px;
+  letter-spacing: 0.01em;
+}
+
+.default-credential-warning-desc {
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+  margin-bottom: 10px;
+}
+
+.default-credential-warning-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.default-credential-warning-list li {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.default-credential-warning-tag {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-danger);
+  background: color-mix(in srgb, var(--color-danger) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-danger) 26%, transparent);
+}
+
 .metric-positive {
   color: var(--color-success);
   font-weight: 500;

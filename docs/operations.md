@@ -221,7 +221,7 @@ curl -sS http://localhost:4000/v1/chat/completions \
 
 - 会清空当前 metapi 正在使用的全部业务数据
 - 如果当前运行在外部 MySQL / Postgres，会先清空该外部库中的 metapi 数据，再切回默认 SQLite
-- 管理员 Token 会重置为 `change-me-admin-token`
+- 管理员 Token 会重置为 `123456`
 - 当前登录会话会立即退出，页面刷新后回到首装状态
 
 执行前建议先做一次导出或数据库备份。

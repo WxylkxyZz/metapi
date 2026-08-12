@@ -1,4 +1,4 @@
-import { buildConfig, config } from '../config.js';
+import { buildConfig, config, DEFAULT_ADMIN_TOKEN } from '../config.js';
 import { db, schema, switchRuntimeDatabase } from '../db/index.js';
 import { upsertSetting } from '../db/upsertSetting.js';
 import { updateBalanceRefreshCron, updateCheckinCron, updateLogCleanupSettings } from './checkinScheduler.js';
@@ -6,7 +6,7 @@ import { ensureDefaultSitesSeeded } from './defaultSiteSeedService.js';
 import { startProxyLogRetentionService } from './proxyLogRetentionService.js';
 import { invalidateSiteProxyCache } from './siteProxy.js';
 
-export const FACTORY_RESET_ADMIN_TOKEN = 'change-me-admin-token';
+export const FACTORY_RESET_ADMIN_TOKEN = DEFAULT_ADMIN_TOKEN;
 
 type FactoryResetDependencies = {
   switchRuntimeDatabase?: typeof switchRuntimeDatabase;

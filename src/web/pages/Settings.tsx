@@ -30,7 +30,7 @@ import { tr } from '../i18n.js';
 import { generateDownstreamSkKey } from './helpers/generateDownstreamSkKey.js';
 
 const PROXY_TOKEN_PREFIX = 'sk-';
-const FACTORY_RESET_ADMIN_TOKEN = 'change-me-admin-token';
+const FACTORY_RESET_ADMIN_TOKEN = '123456';
 const FACTORY_RESET_CONFIRM_SECONDS = 3;
 const MODEL_AVAILABILITY_PROBE_CONFIRM_TEXT = '我确认我使用的中转站全部允许批量测活，如因开启此功能被中转站封号，自行负责。';
 const SECONDS_PER_DAY = 24 * 60 * 60;
@@ -81,6 +81,8 @@ type RuntimeSettings = {
   proxyErrorKeywords: string[];
   proxyEmptyContentFailEnabled: boolean;
   proxyTokenMasked?: string;
+  authTokenIsDefault?: boolean;
+  proxyTokenIsDefault?: boolean;
   adminIpAllowlist?: string[];
   currentAdminIp?: string;
   globalBlockedBrands?: string[];
@@ -366,6 +368,8 @@ export default function Settings() {
   const [proxyTokenSuffix, setProxyTokenSuffix] = useState('');
   const [proxyErrorKeywordsText, setProxyErrorKeywordsText] = useState('');
   const [maskedToken, setMaskedToken] = useState('');
+  const [authTokenIsDefault, setAuthTokenIsDefault] = useState(false);
+  const [proxyTokenIsDefault, setProxyTokenIsDefault] = useState(false);
   const [loading, setLoading] = useState(true);
   const [savingSchedule, setSavingSchedule] = useState(false);
   const [testingCheckin, setTestingCheckin] = useState(false);
@@ -659,6 +663,8 @@ export default function Settings() {
         api.getRuntimeDatabaseConfig(),
       ]);
       setMaskedToken(authInfo.masked || '****');
+      setAuthTokenIsDefault(!!authInfo.isDefault || !!(runtimeInfo as any).authTokenIsDefault);
+      setProxyTokenIsDefault(!!(runtimeInfo as any).proxyTokenIsDefault);
       const routeCooldownInput = resolveRouteCooldownInput(runtimeInfo.tokenRouterFailureCooldownMaxSec);
       setRuntime({
         checkinCron: runtimeInfo.checkinCron || '0 8 * * *',
@@ -1313,6 +1319,39 @@ export default function Settings() {
       <div className="page-header">
         <h2 className="page-title">系统设置</h2>
       </div>
+
+      {(authTokenIsDefault || proxyTokenIsDefault) && (
+        <div className="card animate-slide-up stagger-0 default-credential-warning" style={{ padding: 18 }}>
+          <div className="default-credential-warning-inner">
+            <div className="default-credential-warning-icon" aria-hidden="true">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" />
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+              </svg>
+            </div>
+            <div className="default-credential-warning-body">
+              <div className="default-credential-warning-title">⚠️ 检测到默认访问令牌，存在安全风险</div>
+              <div className="default-credential-warning-desc">
+                当前实例仍在使用出厂默认令牌，任何知道默认值的人都能访问你的管理后台或代理接口。请立即修改，避免被他人滥用。
+              </div>
+              <ul className="default-credential-warning-list">
+                {authTokenIsDefault && (
+                  <li>
+                    <span className="default-credential-warning-tag">管理员登录令牌</span>
+                    仍为默认值，点击下方「修改登录令牌」更换。
+                  </li>
+                )}
+                {proxyTokenIsDefault && (
+                  <li>
+                    <span className="default-credential-warning-tag">下游访问令牌</span>
+                    仍为默认值，在下方「下游访问令牌」区域填写新后缀保存。
+                  </li>
+                )}
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div style={{ maxWidth: 720, display: 'flex', flexDirection: 'column', gap: 16 }}>
         <div className="card animate-slide-up stagger-1" style={{ padding: 20 }}>

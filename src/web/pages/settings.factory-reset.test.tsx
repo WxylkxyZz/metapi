@@ -143,7 +143,7 @@ describe('Settings factory reset', () => {
       await flushMicrotasks();
 
       expect(JSON.stringify(root.toJSON())).toContain('确认重新初始化系统');
-      expect(JSON.stringify(root.toJSON())).toContain('change-me-admin-token');
+      expect(JSON.stringify(root.toJSON())).toContain('123456');
 
       const lockedConfirmButton = root.root.find((node) => (
         node.type === 'button'

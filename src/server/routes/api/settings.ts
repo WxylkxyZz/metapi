@@ -2,7 +2,7 @@ import { FastifyInstance } from 'fastify';
 import cron from 'node-cron';
 import { fetch } from 'undici';
 import { inArray } from 'drizzle-orm';
-import { config, normalizeTokenRouterFailureCooldownMaxSec } from '../../config.js';
+import { config, isDefaultCredential, normalizeTokenRouterFailureCooldownMaxSec } from '../../config.js';
 import { db, runtimeDbDialect, schema } from '../../db/index.js';
 import { upsertSetting } from '../../db/upsertSetting.js';
 import * as routeRefreshWorkflow from '../../services/routeRefreshWorkflow.js';
@@ -704,6 +704,8 @@ function getRuntimeSettingsResponse(currentAdminIp = '') {
     proxyErrorKeywords: config.proxyErrorKeywords,
     proxyEmptyContentFailEnabled: config.proxyEmptyContentFailEnabled,
     proxyTokenMasked: maskSecret(config.proxyToken),
+    authTokenIsDefault: isDefaultCredential(config.authToken, 'auth'),
+    proxyTokenIsDefault: isDefaultCredential(config.proxyToken, 'proxy'),
     globalBlockedBrands: config.globalBlockedBrands,
     globalAllowedModels: config.globalAllowedModels,
   };

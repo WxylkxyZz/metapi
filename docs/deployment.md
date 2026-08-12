@@ -192,7 +192,7 @@ docker run -d --name metapi \
 - 支持基于 GitHub Releases 的应用内更新检查
 
 > [!IMPORTANT]
-> 桌面版首次启动时，如果没有显式注入 `AUTH_TOKEN`，管理员登录令牌默认是 `change-me-admin-token`。
+> 桌面版首次启动时，如果没有显式注入 `AUTH_TOKEN`，管理员登录令牌默认是 `123456`。
 > 这只适合本机初始调试使用，首次登录后应立即修改。
 
 > [!NOTE]

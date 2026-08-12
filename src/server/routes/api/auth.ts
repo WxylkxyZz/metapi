@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify';
 import { db, schema } from '../../db/index.js';
-import { config } from '../../config.js';
+import { config, isDefaultCredential } from '../../config.js';
 import { eq } from 'drizzle-orm';
 import { formatUtcSqlDateTime } from '../../services/localTimeService.js';
 import { createRateLimitGuard } from '../../middleware/requestRateLimit.js';
@@ -70,6 +70,6 @@ export async function authRoutes(app: FastifyInstance) {
     const masked = token.length > 8
       ? token.slice(0, 4) + '****' + token.slice(-4)
       : '****';
-    return { masked };
+    return { masked, isDefault: isDefaultCredential(token, 'auth') };
   });
 }

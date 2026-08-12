@@ -1,11 +1,11 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:crypto';
-import { config } from '../config.js';
+import { config, DEFAULT_ADMIN_TOKEN } from '../config.js';
 
 const VERSION = 'v1';
 const ALGORITHM = 'aes-256-gcm';
 
 function buildKey(): Buffer {
-  const secret = (config.accountCredentialSecret || '').trim() || config.authToken || 'change-me-admin-token';
+  const secret = (config.accountCredentialSecret || '').trim() || config.authToken || DEFAULT_ADMIN_TOKEN;
   return createHash('sha256').update(secret).digest();
 }
 

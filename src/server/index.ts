@@ -4,6 +4,7 @@ import fastifyStatic from '@fastify/static';
 import {
   buildFastifyOptions,
   config,
+  isDefaultCredential,
 } from './config.js';
 import { authMiddleware } from './middleware/auth.js';
 import { sitesRoutes } from './routes/api/sites.js';
@@ -310,6 +311,16 @@ try {
   });
   for (const line of summaryLines) {
     console.log(line);
+  }
+
+  const authIsDefault = isDefaultCredential(config.authToken, 'auth');
+  const proxyIsDefault = isDefaultCredential(config.proxyToken, 'proxy');
+  if (authIsDefault || proxyIsDefault) {
+    const parts: string[] = ['\n⚠️  WARNING: insecure default credential in use'];
+    if (authIsDefault) parts.push(`  - AUTH_TOKEN (管理员登录令牌) 仍是默认值 "${config.authToken}"，请立即修改`);
+    if (proxyIsDefault) parts.push(`  - PROXY_TOKEN (下游访问令牌) 仍是默认值 "${config.proxyToken}"，请立即修改`);
+    parts.push('  修改方式：设置 → 管理员登录令牌 / 下游访问令牌，或启动前设置环境变量 AUTH_TOKEN / PROXY_TOKEN。\n');
+    console.error(parts.join('\n'));
   }
 } catch (err) {
   app.log.error(err);
