@@ -1484,13 +1484,13 @@ export function normalizeUpstreamStreamEvent(
       ? (delta as any).reasoning_signature
       : undefined;
 
-    // Some upstream providers (e.g. certain OpenAI-compatible aggregators) emit thinking
-    // tokens with the same text duplicated in both delta.content and delta.reasoning_content.
-    // When the two values are identical it means content is just echoing the reasoning —
-    // suppress it so internal thinking is never leaked to downstream consumers.
-    const contentDelta = (reasoningDelta && rawContentDelta === reasoningDelta)
-      ? ''
-      : rawContentDelta;
+    // Do NOT suppress content just because it happens to equal reasoning_content.
+    // A legitimate upstream may write the same visible answer to both fields;
+    // dropping it would silently swallow the user's response. Tagged thinking
+    // (<thinking>...</thinking>) is already routed to reasoning above, so the
+    // visible content field is only ever populated when the model genuinely
+    // produced an answer. Keep the two fields independent.
+    const contentDelta = rawContentDelta;
 
     const rawToolCalls = Array.isArray((delta as any).tool_calls)
       ? ((delta as any).tool_calls as unknown[])

@@ -82,6 +82,49 @@ describe('chatFormatsCore inline think parsing', () => {
     });
   });
 
+  it('keeps a visible answer when upstream writes the same text to both content and reasoning_content', () => {
+    const context = createStreamTransformContext('gpt-test');
+
+    const event = normalizeUpstreamStreamEvent({
+      id: 'chatcmpl-dup-fields',
+      model: 'gpt-test',
+      choices: [{
+        index: 0,
+        delta: {
+          content: 'The answer is 42.',
+          reasoning_content: 'The answer is 42.',
+        },
+        finish_reason: null,
+      }],
+    }, context, 'gpt-test');
+
+    // A legitimate upstream may legitimately place the same visible text in both
+    // fields. The answer must not be silently swallowed just because the two
+    // values happen to be identical.
+    expect(event.contentDelta).toBe('The answer is 42.');
+    expect(event.reasoningDelta).toBe('The answer is 42.');
+  });
+
+  it('keeps a visible answer when reasoning_content carries distinct internal thinking', () => {
+    const context = createStreamTransformContext('gpt-test');
+
+    const event = normalizeUpstreamStreamEvent({
+      id: 'chatcmpl-distinct-fields',
+      model: 'gpt-test',
+      choices: [{
+        index: 0,
+        delta: {
+          content: 'The answer is 42.',
+          reasoning_content: 'I should think step by step.',
+        },
+        finish_reason: null,
+      }],
+    }, context, 'gpt-test');
+
+    expect(event.contentDelta).toBe('The answer is 42.');
+    expect(event.reasoningDelta).toBe('I should think step by step.');
+  });
+
   it('treats response.reasoning_summary_text.done as reasoning-only stream output', () => {
     const context = createStreamTransformContext('gpt-test');
 
