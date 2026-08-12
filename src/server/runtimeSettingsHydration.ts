@@ -1,5 +1,6 @@
 import {
   config,
+  DEFAULT_ADMIN_TOKEN,
   normalizeTokenRouterFailureCooldownMaxSec,
 } from './config.js';
 import { normalizePayloadRulesConfig } from './services/payloadRules.js';
@@ -41,6 +42,20 @@ function toStringList(value: unknown): string[] {
 export function applyRuntimeSettings(settingsMap: Map<string, string>) {
   const authToken = parseSettingFromMap<string>(settingsMap, 'auth_token');
   if (typeof authToken === 'string' && authToken) config.authToken = authToken;
+
+  // A persisted account-credential secret (generated on first boot) takes effect
+  // only when the operator did not set ACCOUNT_CREDENTIAL_SECRET and the current
+  // key is still the public default (i.e. AUTH_TOKEN is unset too). When AUTH_TOKEN
+  // is set it remains the key, so existing ciphertexts stay decryptable.
+  const accountCredentialSecret = parseSettingFromMap<string>(settingsMap, 'account_credential_secret_v1');
+  if (
+    typeof accountCredentialSecret === 'string'
+    && accountCredentialSecret
+    && !config.accountCredentialSecretExplicit
+    && config.accountCredentialSecret === DEFAULT_ADMIN_TOKEN
+  ) {
+    config.accountCredentialSecret = accountCredentialSecret;
+  }
 
   const proxyToken = parseSettingFromMap<string>(settingsMap, 'proxy_token');
   if (typeof proxyToken === 'string' && proxyToken) config.proxyToken = proxyToken;

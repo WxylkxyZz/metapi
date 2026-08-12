@@ -129,7 +129,7 @@ Metapi 当前有三类主要配置入口：
 | `PORT` | 服务监听端口 | `4000` |
 | `DATA_DIR` | 数据目录（SQLite 数据库存储位置） | `./data` |
 | `TZ` | 时区 | `Asia/Shanghai` |
-| `ACCOUNT_CREDENTIAL_SECRET` | 账号凭证加密密钥（用于加密存储的上游账号密码） | 默认使用 `AUTH_TOKEN` |
+| `ACCOUNT_CREDENTIAL_SECRET` | 账号凭证加密密钥（用于加密存储的上游账号密码）。建议显式设置强随机值；未设置时回退到 `AUTH_TOKEN`；若两者都未设置，首次启动会自动生成并持久化一个强随机密钥 | 显式设置优先于自动生成 |
 
 ### 2. OAuth 与 Provider 登录
 

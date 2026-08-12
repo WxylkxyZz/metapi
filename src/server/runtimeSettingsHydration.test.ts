@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { config } from './config.js';
+import { config, DEFAULT_ADMIN_TOKEN } from './config.js';
 import { applyRuntimeSettings } from './runtimeSettingsHydration.js';
 
 const originalConfig = structuredClone(config);
@@ -40,5 +40,38 @@ describe('applyRuntimeSettings', () => {
     ]));
 
     expect(config.globalAllowedModels).toEqual(['model-alpha', 'model-beta', 'model-gamma']);
+  });
+
+  it('hydrates a persisted account-credential secret when the key is the public default', () => {
+    config.accountCredentialSecret = DEFAULT_ADMIN_TOKEN;
+    config.accountCredentialSecretExplicit = false;
+
+    applyRuntimeSettings(new Map([
+      ['account_credential_secret_v1', JSON.stringify('metapi-persisted-strong-secret')],
+    ]));
+
+    expect(config.accountCredentialSecret).toBe('metapi-persisted-strong-secret');
+  });
+
+  it('does not hydrate a persisted secret when ACCOUNT_CREDENTIAL_SECRET is explicit', () => {
+    config.accountCredentialSecret = 'operator-set';
+    config.accountCredentialSecretExplicit = true;
+
+    applyRuntimeSettings(new Map([
+      ['account_credential_secret_v1', JSON.stringify('metapi-persisted-strong-secret')],
+    ]));
+
+    expect(config.accountCredentialSecret).toBe('operator-set');
+  });
+
+  it('does not hydrate a persisted secret when AUTH_TOKEN is the current key', () => {
+    config.accountCredentialSecret = 'insecure-auth-token';
+    config.accountCredentialSecretExplicit = false;
+
+    applyRuntimeSettings(new Map([
+      ['account_credential_secret_v1', JSON.stringify('metapi-persisted-strong-secret')],
+    ]));
+
+    expect(config.accountCredentialSecret).toBe('insecure-auth-token');
   });
 });

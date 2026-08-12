@@ -4,9 +4,19 @@ import { config, DEFAULT_ADMIN_TOKEN } from '../config.js';
 const VERSION = 'v1';
 const ALGORITHM = 'aes-256-gcm';
 
+// Per-boot random fallback so the key is never a publicly-known constant. Used only
+// if boot-time secret provisioning failed (ensureAccountCredentialSecret) — normally
+// the deployment-unique secret is loaded before any account is encrypted.
+const RUNTIME_FALLBACK_SECRET = randomBytes(32).toString('base64url');
+
 function buildKey(): Buffer {
-  const secret = (config.accountCredentialSecret || '').trim() || config.authToken || DEFAULT_ADMIN_TOKEN;
-  return createHash('sha256').update(secret).digest();
+  const secret = (config.accountCredentialSecret || '').trim();
+  const effective = secret && secret !== DEFAULT_ADMIN_TOKEN
+    ? secret
+    : ((config.authToken || '').trim() && config.authToken !== DEFAULT_ADMIN_TOKEN
+      ? config.authToken
+      : RUNTIME_FALLBACK_SECRET);
+  return createHash('sha256').update(effective).digest();
 }
 
 export function encryptAccountPassword(password: string): string {

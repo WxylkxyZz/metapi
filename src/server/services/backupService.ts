@@ -237,6 +237,9 @@ const EXCLUDED_SETTING_KEYS = new Set<string>([
   'db_type',
   'db_url',
   'db_ssl',
+  // The account-credential encryption secret is deployment-bound; exporting it would
+  // leak the key and break cross-instance restore semantics.
+  'account_credential_secret_v1',
 ]);
 const BACKUP_WEBDAV_CONFIG_SETTING_KEY = 'backup_webdav_config_v1';
 const BACKUP_WEBDAV_STATE_SETTING_KEY = 'backup_webdav_state_v1';

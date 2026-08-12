@@ -57,6 +57,7 @@ import {
 } from './services/usageAggregationService.js';
 import { reloadBackupWebdavScheduler } from './services/backupService.js';
 import { ensureRuntimeDatabaseReady } from './runtimeDatabaseBootstrap.js';
+import { ensureAccountCredentialSecret, isUsingFallbackCredentialSecret } from './services/accountCredentialSecretService.js';
 import { isPublicApiRoute, registerDesktopRoutes } from './desktop.js';
 import { existsSync } from 'fs';
 import { fileURLToPath } from 'url';
@@ -193,6 +194,10 @@ try {
   const finalRows = await db.select().from(schema.settings).all();
   const finalMap = toSettingsMap(finalRows);
   applyRuntimeSettings(finalMap);
+  // Ensure account credentials are never encrypted with the public default token.
+  // Generates + persists a strong secret on first boot unless the operator set
+  // ACCOUNT_CREDENTIAL_SECRET explicitly.
+  await ensureAccountCredentialSecret();
   config.logCleanupConfigured = hasExplicitLogCleanupSettings(finalMap);
   if (!config.logCleanupConfigured && config.proxyLogRetentionDays > 0) {
     config.logCleanupUsageLogsEnabled = true;
@@ -315,11 +320,13 @@ try {
 
   const authIsDefault = isDefaultCredential(config.authToken, 'auth');
   const proxyIsDefault = isDefaultCredential(config.proxyToken, 'proxy');
-  if (authIsDefault || proxyIsDefault) {
+  const credentialSecretFallback = isUsingFallbackCredentialSecret();
+  if (authIsDefault || proxyIsDefault || credentialSecretFallback) {
     const parts: string[] = ['\n⚠️  WARNING: insecure default credential in use'];
     if (authIsDefault) parts.push(`  - AUTH_TOKEN (管理员登录令牌) 仍是默认值 "${config.authToken}"，请立即修改`);
     if (proxyIsDefault) parts.push(`  - PROXY_TOKEN (下游访问令牌) 仍是默认值 "${config.proxyToken}"，请立即修改`);
-    parts.push('  修改方式：设置 → 管理员登录令牌 / 下游访问令牌，或启动前设置环境变量 AUTH_TOKEN / PROXY_TOKEN。\n');
+    if (credentialSecretFallback) parts.push('  - ACCOUNT_CREDENTIAL_SECRET（账号凭证加密密钥）未设置，账号密码所用的加密密钥不可靠，请设置后重启');
+    parts.push('  修改方式：设置 → 管理员登录令牌 / 下游访问令牌，或启动前设置环境变量 AUTH_TOKEN / PROXY_TOKEN / ACCOUNT_CREDENTIAL_SECRET。\n');
     console.error(parts.join('\n'));
   }
 } catch (err) {

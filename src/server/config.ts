@@ -93,6 +93,10 @@ export function buildConfig(env: NodeJS.ProcessEnv) {
     geminiCliClientSecret: parseOptionalSecret(env.GEMINI_CLI_CLIENT_SECRET) || DEFAULT_GEMINI_CLI_CLIENT_SECRET,
     systemProxyUrl: env.SYSTEM_PROXY_URL || '',
     accountCredentialSecret: env.ACCOUNT_CREDENTIAL_SECRET || env.AUTH_TOKEN || DEFAULT_ADMIN_TOKEN,
+    // Whether the operator explicitly set ACCOUNT_CREDENTIAL_SECRET. When false, the
+    // value above may be a fallback (AUTH_TOKEN or the public default), so first boot
+    // generates and persists a strong secret instead of encrypting with a known key.
+    accountCredentialSecretExplicit: !!parseOptionalSecret(env.ACCOUNT_CREDENTIAL_SECRET),
     checkinCron: env.CHECKIN_CRON || '0 8 * * *',
     checkinScheduleMode: (env.CHECKIN_SCHEDULE_MODE || 'cron').trim().toLowerCase() === 'interval'
       ? 'interval' as const
