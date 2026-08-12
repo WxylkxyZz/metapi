@@ -1,7 +1,7 @@
 import { FastifyInstance } from 'fastify';
 import cron from 'node-cron';
 import { fetch } from 'undici';
-import { inArray } from 'drizzle-orm';
+import { eq, inArray, isNull, or } from 'drizzle-orm';
 import { config, isDefaultCredential, normalizeTokenRouterFailureCooldownMaxSec } from '../../config.js';
 import { db, runtimeDbDialect, schema } from '../../db/index.js';
 import { upsertSetting } from '../../db/upsertSetting.js';
@@ -1851,7 +1851,13 @@ export async function settingsRoutes(app: FastifyInstance) {
   });
 
   app.post('/api/settings/maintenance/clear-cache', async (_, reply) => {
-    const deletedModelAvailability = (await db.delete(schema.modelAvailability).run()).changes;
+    // Delete only auto-discovered model availability. Manually-added models (isManual=true,
+    // added via account → manual model) are part of the user's persistent configuration and
+    // must survive a cache clear — the rebuild below only recreates routes from upstream
+    // discovery, so manual models would otherwise be lost forever.
+    const deletedModelAvailability = (await db.delete(schema.modelAvailability)
+      .where(or(isNull(schema.modelAvailability.isManual), eq(schema.modelAvailability.isManual, false)))
+      .run()).changes;
 
     // Preserve user-defined rule routes (regex / wildcard / manual explicit groups) across a
     // cache clear. Auto-rebuild only recreates exact model-pattern routes, so without this the

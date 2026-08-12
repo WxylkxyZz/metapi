@@ -106,6 +106,83 @@ describe('settings maintenance clear-cache preserves user-defined route rules', 
     expect(routes.map((r) => r.modelPattern)).toContain('re:^claude-.*$');
   });
 
+  it('preserves manually-added model availability (isManual=true) across a cache clear', async () => {
+    const site = await db.insert(schema.sites).values({
+      name: 'site-manual',
+      url: 'https://site-manual.example.com',
+      platform: 'new-api',
+      status: 'active',
+    }).returning().get();
+    const account = await db.insert(schema.accounts).values({
+      siteId: site.id,
+      username: 'user-manual',
+      accessToken: 'acc-manual',
+      status: 'active',
+    }).returning().get();
+
+    // A manually-added model (persistent user config).
+    await db.insert(schema.modelAvailability).values({
+      accountId: account.id,
+      modelName: 'my-manual-model',
+      available: true,
+      isManual: true,
+      latencyMs: null,
+    }).run();
+    // An auto-discovered model (throwaway cache, should be deleted).
+    await db.insert(schema.modelAvailability).values({
+      accountId: account.id,
+      modelName: 'auto-discovered-model',
+      available: true,
+      isManual: false,
+      latencyMs: 123,
+    }).run();
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/settings/maintenance/clear-cache',
+    });
+    expect(response.statusCode).toBe(202);
+    expect(response.json().deletedModelAvailability).toBe(1);
+
+    const rows = await db.select().from(schema.modelAvailability).all();
+    const names = rows.map((r) => r.modelName);
+    expect(names).toContain('my-manual-model');            // manual survives
+    expect(names).not.toContain('auto-discovered-model');  // auto row deleted
+  });
+
+  it('preserves a manual model with NULL isManual default alongside auto rows', async () => {
+    const site = await db.insert(schema.sites).values({
+      name: 'site-null-manual',
+      url: 'https://site-null-manual.example.com',
+      platform: 'new-api',
+      status: 'active',
+    }).returning().get();
+    const account = await db.insert(schema.accounts).values({
+      siteId: site.id,
+      username: 'user-null',
+      accessToken: 'acc-null',
+      status: 'active',
+    }).returning().get();
+
+    // Manual model inserted without isManual → DB default (false) applies. This is NOT a manual
+    // model; it represents the pre-isManual legacy/discovered rows and must still be deleted.
+    await db.insert(schema.modelAvailability).values({
+      accountId: account.id,
+      modelName: 'legacy-discovered-model',
+      available: true,
+    }).run();
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/settings/maintenance/clear-cache',
+    });
+    expect(response.statusCode).toBe(202);
+    expect(response.json().deletedModelAvailability).toBe(1);
+
+    const rows = await db.select().from(schema.modelAvailability).all();
+    expect(rows).toHaveLength(0);
+  });
+
   it('preserves a wildcard route and an explicit group plus its referenced exact source route', async () => {
     // Auto-generated exact source routes referenced by an explicit group.
     const sourceExact = await insertRoute({ modelPattern: 'gpt-4o' });
