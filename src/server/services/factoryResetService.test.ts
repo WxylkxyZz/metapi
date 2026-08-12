@@ -45,6 +45,10 @@ describe('factoryResetService', () => {
     await db.delete(schema.settings).run();
 
     config.authToken = 'external-reset-token';
+    // Pin the proxy token explicitly: the ambient config value may have been overridden
+    // by a local .env PROXY_TOKEN (dotenv loads it into process.env at module load), which
+    // would otherwise make this test's expectation of the baseline default nondeterministic.
+    config.proxyToken = 'sk-change-me';
     config.dbType = 'postgres';
     config.dbUrl = 'postgres://user:pass@127.0.0.1:5432/metapi';
     config.dbSsl = true;

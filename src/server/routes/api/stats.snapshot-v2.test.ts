@@ -46,6 +46,10 @@ describe("stats snapshot v2 routes", () => {
 
   afterAll(async () => {
     await app.close();
+    // Close the SQLite connection first: on Windows an open file handle prevents
+    // rmSync from deleting the temp data dir (EPERM).
+    const dbModule = await import('../../db/index.js');
+    await dbModule.closeDbConnections();
     if (previousDataDir === undefined) {
       delete process.env.DATA_DIR;
     } else {

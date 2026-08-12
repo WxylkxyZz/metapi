@@ -75,12 +75,16 @@ describe('channelRecoveryProbeService', () => {
     await db.delete(schema.sites).run();
   });
 
-  afterAll(() => {
+  afterAll(async () => {
     config.proxySessionChannelConcurrencyLimit = originalConcurrencyLimit;
     resetChannelRecoveryProbeState();
     resetProxyChannelCoordinatorState();
     invalidateTokenRouterCache();
     resetSiteRuntimeHealthState();
+    // Close the SQLite connection first: on Windows an open file handle prevents
+    // rmSync from deleting the temp data dir (EPERM).
+    const dbModule = await import('../db/index.js');
+    await dbModule.closeDbConnections();
     rmSync(dataDir, { recursive: true, force: true });
     if (originalDataDir === undefined) {
       delete process.env.DATA_DIR;

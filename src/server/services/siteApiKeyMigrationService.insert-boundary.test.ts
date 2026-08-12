@@ -42,6 +42,10 @@ describe('siteApiKeyMigrationService insert boundary', () => {
   });
 
   afterAll(async () => {
+    // Close the SQLite connection first: on Windows an open file handle prevents
+    // rmSync from deleting the temp data dir (EPERM).
+    const dbModule = await import('../db/index.js');
+    await dbModule.closeDbConnections();
     if (dataDir) {
       rmSync(dataDir, { recursive: true, force: true });
     }
