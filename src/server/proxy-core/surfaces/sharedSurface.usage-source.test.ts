@@ -17,6 +17,7 @@ vi.mock('../../services/tokenRouter.js', () => ({
   tokenRouter: {
     recordFailure: vi.fn(),
     recordSuccess: vi.fn(),
+    recordSuccessSafe: vi.fn(),
   },
 }));
 

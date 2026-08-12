@@ -415,7 +415,7 @@ export async function recordSurfaceSuccess(input: {
     console.error(input.bestEffortMetrics.errorLabel, error);
   }
 
-  tokenRouter.recordSuccess(
+  tokenRouter.recordSuccessSafe(
     input.selected.channel.id,
     input.latencyMs,
     estimatedCost,

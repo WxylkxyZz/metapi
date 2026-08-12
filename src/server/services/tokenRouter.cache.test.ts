@@ -904,4 +904,53 @@ describe('TokenRouter runtime cache', () => {
     expect(cooldownMs).toBeGreaterThanOrEqual((30 * 24 * 60 * 60 - 5) * 1000);
     expect(cooldownMs).toBeLessThanOrEqual((30 * 24 * 60 * 60 + 5) * 1000);
   });
+
+  it('recordSuccessSafe never rejects and updates stats on success', async () => {
+    const site = await db.insert(schema.sites).values({
+      name: 'safe-success-site',
+      url: 'https://safe-success.example.com',
+      platform: 'new-api',
+      status: 'active',
+    }).returning().get();
+
+    const account = await db.insert(schema.accounts).values({
+      siteId: site.id,
+      username: 'safe-success-user',
+      accessToken: 'safe-success-access-token',
+      apiToken: 'safe-success-api-token',
+      status: 'active',
+    }).returning().get();
+
+    const route = await db.insert(schema.tokenRoutes).values({
+      modelPattern: 'gpt-4o',
+      enabled: true,
+    }).returning().get();
+
+    const channel = await db.insert(schema.routeChannels).values({
+      routeId: route.id,
+      accountId: account.id,
+      tokenId: null,
+      priority: 0,
+      weight: 10,
+      enabled: true,
+      manualOverride: false,
+    }).returning().get();
+
+    const router = new TokenRouter();
+
+    // The safe wrapper must not throw/reject even though it is fire-and-forget.
+    let rejected = false;
+    await Promise.resolve(router.recordSuccessSafe(channel.id, 120, 0.05, 'gpt-4o'))
+      .catch(() => { rejected = true; });
+    // Give the fire-and-forget write a tick to land.
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(rejected).toBe(false);
+
+    const current = await db.select().from(schema.routeChannels)
+      .where(eq(schema.routeChannels.id, channel.id))
+      .get();
+    expect(current?.successCount).toBe(1);
+    expect(current?.totalLatencyMs).toBe(120);
+    expect(current?.totalCost).toBeCloseTo(0.05, 5);
+  });
 });

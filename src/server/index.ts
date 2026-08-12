@@ -129,6 +129,22 @@ function hasExplicitLogCleanupSettings(settingsMap: Map<string, string>): boolea
   return LOG_CLEANUP_SETTING_KEYS.some((key) => settingsMap.has(key));
 }
 
+// Install process-level crash guards. Without these, Node >= 15 terminates the whole process on
+// any unhandled promise rejection or uncaught exception. A single transient DB error (e.g.
+// SQLITE_BUSY under a concurrent route rebuild) on a fire-and-forget accounting write would
+// otherwise kill the entire server. We log loudly and keep the process alive so the request loop
+// and schedulers can continue; the underlying error is still surfaced for diagnosis.
+process.on('unhandledRejection', (reason, promise) => {
+  console.error(
+    '[process] unhandled promise rejection:',
+    reason instanceof Error ? reason.stack || reason.message : reason,
+    '\n  at promise:', promise,
+  );
+});
+process.on('uncaughtException', (error) => {
+  console.error('[process] uncaught exception:', error?.stack || error);
+});
+
 // Ensure the current runtime database is bootstrapped before reading settings.
 await ensureRuntimeDatabaseReady({
   dialect: runtimeDbDialect,

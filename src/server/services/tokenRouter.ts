@@ -2565,6 +2565,25 @@ export class TokenRouter {
     });
   }
 
+  /**
+   * Fire-and-forget success accounting that never throws. Used on the request hot path where
+   * `recordSuccess` is invoked without `await`; a DB error (SQLITE_BUSY under a concurrent
+   * rebuild, MySQL connection drop) must not surface as an unhandled rejection. Best-effort:
+   * on failure the channel's in-memory stats simply aren't updated for this call.
+   */
+  recordSuccessSafe(
+    channelId: number,
+    latencyMs: number,
+    cost: number,
+    modelName?: string | null,
+    actualAccountId?: number,
+  ) {
+    void this.recordSuccess(channelId, latencyMs, cost, modelName, actualAccountId)
+      .catch((error) => {
+        console.warn('[router] recordSuccess (best-effort) failed:', error?.message || error);
+      });
+  }
+
   async recordProbeSuccess(
     channelId: number,
     latencyMs: number,
