@@ -201,12 +201,18 @@ function parseImportSummary(raw: string): ParsedSummary | null {
       || accountsSection
       || legacyAccounts,
     );
+    // An accounts container that carries no restorable connection data (no sites
+    // and no accounts) is skipped server-side, so reflect that in the summary.
+    const emptyAccountsContainer = Boolean(accountsSection)
+      && (accountsSection.sites?.length || 0) === 0
+      && (accountsSection.accounts?.length || 0) === 0;
     const hasPreferences = Boolean(
       data.type === 'preferences'
       || preferencesSection
       || legacyPrefs,
     );
     const ignoredSections: string[] = [];
+    if (emptyAccountsContainer) ignoredSections.push('空账目数据（将跳过，不覆盖现有连接）');
     if (bookmarksCount > 0) ignoredSections.push('accounts.bookmarks');
     if (data.channelConfigs && typeof data.channelConfigs === 'object' && !Array.isArray(data.channelConfigs)) ignoredSections.push('channelConfigs');
     if (data.tagStore && typeof data.tagStore === 'object' && !Array.isArray(data.tagStore)) ignoredSections.push('tagStore');

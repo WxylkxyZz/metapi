@@ -527,6 +527,136 @@ describe('backupService', () => {
     expect(restoredCheckinLogs[0]?.message).toBe('local-checkin');
   });
 
+  it('does not wipe existing connection data when importing an empty accounts section', async () => {
+    const exportedAt = '2026-03-20T09:00:00.000Z';
+    const site = await db.insert(schema.sites).values({
+      name: 'existing-site',
+      url: 'https://existing.example.com',
+      platform: 'new-api',
+      status: 'active',
+      createdAt: exportedAt,
+      updatedAt: exportedAt,
+    }).returning().get();
+
+    const account = await db.insert(schema.accounts).values({
+      siteId: site.id,
+      username: 'existing-user',
+      accessToken: 'session-token',
+      apiToken: 'api-token',
+      balance: 20,
+      balanceUsed: 3,
+      quota: 100,
+      status: 'active',
+      checkinEnabled: true,
+      createdAt: exportedAt,
+      updatedAt: exportedAt,
+    }).returning().get();
+
+    // A structurally-detected-but-empty accounts section: legacy ref shape with
+    // an empty `accounts.accounts` array. Importing it must NOT wipe the live data.
+    const emptyLegacyPayload = {
+      timestamp: Date.now(),
+      accounts: {
+        accounts: [],
+      },
+    } as Record<string, unknown>;
+
+    await expect(backupService.importBackup(emptyLegacyPayload)).rejects.toThrow(/为空|没有可识别/);
+
+    const survivingSite = await db.select().from(schema.sites).where(eq(schema.sites.id, site.id)).get();
+    const survivingAccount = await db.select().from(schema.accounts).where(eq(schema.accounts.id, account.id)).get();
+    expect(survivingSite?.name).toBe('existing-site');
+    expect(survivingAccount?.username).toBe('existing-user');
+  });
+
+  it('does not wipe existing connection data when importing a native empty accounts section', async () => {
+    const exportedAt = '2026-03-20T09:00:00.000Z';
+    const site = await db.insert(schema.sites).values({
+      name: 'existing-native-site',
+      url: 'https://existing-native.example.com',
+      platform: 'new-api',
+      status: 'active',
+      createdAt: exportedAt,
+      updatedAt: exportedAt,
+    }).returning().get();
+
+    // Native `all`-type export from a fresh install: root `accounts` with all-empty arrays.
+    // The empty accounts section must be skipped (not counting as accounts requested),
+    // so the live connection data survives and only (empty) preferences are imported.
+    const emptyNativePayload = {
+      version: '2.1',
+      timestamp: Date.now(),
+      type: 'all',
+      accounts: {
+        sites: [],
+        siteApiEndpoints: [],
+        accounts: [],
+        accountTokens: [],
+        tokenRoutes: [],
+        routeChannels: [],
+        routeGroupSources: [],
+        siteDisabledModels: [],
+        manualModels: [],
+        downstreamApiKeys: [],
+      },
+      preferences: {
+        settings: [],
+      },
+    } as Record<string, unknown>;
+
+    const result = await backupService.importBackup(emptyNativePayload);
+
+    expect(result.allImported).toBe(true);
+    expect(result.sections.accounts).toBe(false);
+    expect(result.sections.preferences).toBe(true);
+
+    const survivingSites = await db.select().from(schema.sites).all();
+    expect(survivingSites).toHaveLength(1);
+    expect(survivingSites[0]?.name).toBe('existing-native-site');
+  });
+
+  it('skips a stray empty accounts container in a preferences-only backup', async () => {
+    const exportedAt = '2026-03-20T09:00:00.000Z';
+    const site = await db.insert(schema.sites).values({
+      name: 'prefs-only-site',
+      url: 'https://prefs-only.example.com',
+      platform: 'new-api',
+      status: 'active',
+      createdAt: exportedAt,
+      updatedAt: exportedAt,
+    }).returning().get();
+
+    // A preferences-only backup that carries a stray empty `accounts` container
+    // (e.g. legacy shape with `accounts: { accounts: [] }`). Importing it must
+    // restore settings without wiping or blocking on the empty accounts section.
+    const prefsOnlyPayload = {
+      version: '2.1',
+      timestamp: Date.now(),
+      type: 'preferences',
+      preferences: {
+        settings: [
+          { key: 'routing_fallback_unit_cost', value: 0.25 },
+        ],
+      },
+      accounts: {
+        accounts: [],
+      },
+    } as Record<string, unknown>;
+
+    const result = await backupService.importBackup(prefsOnlyPayload);
+
+    expect(result.allImported).toBe(true);
+    expect(result.sections.accounts).toBe(false);
+    expect(result.sections.preferences).toBe(true);
+    expect(result.appliedSettings).toEqual([
+      { key: 'routing_fallback_unit_cost', value: 0.25 },
+    ]);
+
+    const survivingSites = await db.select().from(schema.sites).all();
+    expect(survivingSites).toHaveLength(1);
+    expect(survivingSites[0]?.name).toBe('prefs-only-site');
+  });
+
   it('preserves local-only state while replacing backup-owned config during account imports', async () => {
     const exportedAt = '2026-03-20T09:00:00.000Z';
     const localRuntimeAt = '2026-03-21T10:30:00.000Z';

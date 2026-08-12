@@ -1515,6 +1515,16 @@ function detectImportMetadata(data: RawBackupData): {
 }
 
 async function importAccountsSection(section: AccountsBackupSection): Promise<void> {
+  // Guard against accidental data loss: if the backup's accounts section carries
+  // NO restorable connection data (no sites AND no accounts), wiping the live
+  // system would silently destroy everything the user currently has. This happens
+  // when importing a structurally-detected-but-empty accounts section (e.g. a
+  // legacy ref backup whose rows are all invalid/skipped, or an empty container).
+  const hasRestorableConnections = section.sites.length > 0 || section.accounts.length > 0;
+  if (!hasRestorableConnections) {
+    throw new Error('备份中的连接/路由数据为空，已取消导入以避免清空现有账号数据');
+  }
+
   const runtimeState = await collectCurrentRuntimeStateSnapshot();
   const importedIndexes = buildRuntimeIdentityIndexesFromSection(section);
   const shouldReplaceSiteDisabledModels = Array.isArray(section.siteDisabledModels);
@@ -1870,7 +1880,14 @@ export async function importBackup(data: RawBackupData): Promise<BackupImportRes
   const importMetadata = detectImportMetadata(data);
 
   const type = typeof data.type === 'string' ? data.type : '';
-  const accountsRequested = type === 'accounts' || !!accountsSection;
+  // An accounts section with no restorable connections (no sites AND no accounts)
+  // must not count as "accounts requested" unless the user explicitly selected the
+  // accounts type. Otherwise a structurally-detected-but-empty accounts container
+  // (e.g. a stray empty `accounts` in a preferences backup) would either wipe live
+  // data or wrongly block a preferences-only restore.
+  const hasRestorableAccounts = !!accountsSection
+    && (accountsSection.sites.length > 0 || accountsSection.accounts.length > 0);
+  const accountsRequested = type === 'accounts' || hasRestorableAccounts;
   const preferencesRequested = type === 'preferences' || !!preferencesSection;
 
   if (!accountsRequested && !preferencesRequested) {
