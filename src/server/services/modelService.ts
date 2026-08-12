@@ -619,28 +619,29 @@ export async function refreshModelsForAccount(
   const adapter = getAdapter(site.platform);
   const accountProxyUrl = resolveProxyUrlFromExtraConfig(account.extraConfig);
 
-  const restoreAvailabilityOnFailure = options?.allowInactive === true;
-  const previousAccountTokens = restoreAvailabilityOnFailure
-    ? await db.select()
-      .from(schema.accountTokens)
-      .where(eq(schema.accountTokens.accountId, accountId))
-      .all()
-    : [];
-  const previousModelAvailability = restoreAvailabilityOnFailure
-    ? await db.select()
-      .from(schema.modelAvailability)
-      .where(and(
-        eq(schema.modelAvailability.accountId, accountId),
-        eq(schema.modelAvailability.isManual, false),
-      ))
-      .all()
-    : [];
-  const previousTokenModelAvailability = restoreAvailabilityOnFailure
-    ? (await Promise.all(previousAccountTokens.map(async (token) => db.select()
-      .from(schema.tokenModelAvailability)
-      .where(eq(schema.tokenModelAvailability.tokenId, token.id))
-      .all()))).flat()
-    : [];
+  // Always snapshot the pre-refresh availability state BEFORE clearing it. The refresh is a
+  // kill-then-rebuild: `clearExistingAvailability` deletes all non-manual availability rows up
+  // front, and if discovery then fails (429 / network / transient upstream outage) we must be
+  // able to restore the last-known-good state. Tying the snapshot to `allowInactive` was a bug:
+  // the scheduler path (`refreshModelsForAllActiveAccounts`) refreshes active accounts without
+  // `allowInactive`, so restore was a no-op there and one transient failure permanently wiped an
+  // account's model availability and routes. `allowInactive` only gates whether inactive accounts
+  // are refreshed at all — it must not gate the data-preservation snapshot.
+  const previousAccountTokens = await db.select()
+    .from(schema.accountTokens)
+    .where(eq(schema.accountTokens.accountId, accountId))
+    .all();
+  const previousModelAvailability = await db.select()
+    .from(schema.modelAvailability)
+    .where(and(
+      eq(schema.modelAvailability.accountId, accountId),
+      eq(schema.modelAvailability.isManual, false),
+    ))
+    .all();
+  const previousTokenModelAvailability = (await Promise.all(previousAccountTokens.map(async (token) => db.select()
+    .from(schema.tokenModelAvailability)
+    .where(eq(schema.tokenModelAvailability.tokenId, token.id))
+    .all()))).flat();
 
   const clearExistingAvailability = async () => {
     await db.delete(schema.modelAvailability)
@@ -663,12 +664,16 @@ export async function refreshModelsForAccount(
   };
 
   const restorePreviousAvailability = async () => {
-    if (!restoreAvailabilityOnFailure) return;
+    // Always restore the pre-refresh snapshot on failure, regardless of `allowInactive`. The
+    // kill-then-rebuild pattern must be atomic-from-the-caller's-perspective: if we deleted the
+    // old rows but discovery failed, put them back so the account keeps routing until a later
+    // successful refresh. `onConflictDoNothing` guards against a concurrent manual insert of the
+    // same model (unique index on account_id + model_name).
     await clearExistingAvailability();
     if (previousModelAvailability.length > 0) {
       await db.insert(schema.modelAvailability).values(
         previousModelAvailability.map(({ id: _id, ...row }) => row),
-      ).run();
+      ).onConflictDoNothing().run();
     }
     if (previousTokenModelAvailability.length > 0) {
       await db.insert(schema.tokenModelAvailability).values(

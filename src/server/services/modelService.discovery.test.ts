@@ -1346,10 +1346,17 @@ describe('refreshModelsForAccount credential discovery', () => {
     expect(getModelsMock).not.toHaveBeenCalled();
     expect(undiciFetchMock).toHaveBeenCalledTimes(1);
 
+    // A failed discovery must NOT wipe the last-known-good availability: the pre-refresh
+    // snapshot is restored on failure, so the account keeps routing until a later success.
     const rows = await db.select().from(schema.modelAvailability)
       .where(eq(schema.modelAvailability.accountId, account.id))
       .all();
-    expect(rows).toEqual([]);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      accountId: account.id,
+      modelName: 'gpt-5.2-codex',
+      available: true,
+    });
 
     const latest = await db.select().from(schema.accounts)
       .where(eq(schema.accounts.id, account.id))

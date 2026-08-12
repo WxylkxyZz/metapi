@@ -281,4 +281,53 @@ describe('refreshModelsAndRebuildRoutes after disabling a model (full user flow)
     expect(channels.length).toBe(2);
     expect(channels.every((c) => c.accountId === account.id)).toBe(true);
   });
+
+  it('does NOT wipe existing routes/model availability when a refresh fails on the scheduler path (no allowInactive)', async () => {
+    const site = await db.insert(schema.sites).values({
+      name: 'site-transient-fail',
+      url: 'https://site-transient-fail.example.com',
+      platform: 'new-api',
+    }).returning().get();
+
+    const account = await db.insert(schema.accounts).values({
+      siteId: site.id,
+      username: 'user-transient-fail',
+      accessToken: '',
+      apiToken: 'sk-transient-fail',
+      status: 'active',
+      extraConfig: JSON.stringify({ credentialMode: 'apikey' }),
+    }).returning().get();
+
+    // First pass succeeds: the account discovers models and routes are built.
+    getModelsMock.mockResolvedValue(['gpt-4o', 'claude-sonnet-4-5-20250929']);
+    const first = await refreshModelsAndRebuildRoutes();
+    expect((first as any).rebuild.models).toBe(2);
+
+    const routesBefore = await db.select().from(schema.tokenRoutes).all();
+    const channelsBefore = await db.select().from(schema.routeChannels).all();
+    const availabilityBefore = await db.select().from(schema.modelAvailability).all();
+    expect(routesBefore.length).toBe(2);
+    expect(channelsBefore.length).toBe(2);
+    expect(availabilityBefore.length).toBe(2);
+
+    // Second pass: upstream is transiently down (HTTP 429). This is the balance-refresh cron
+    // path — refreshModelsForAllActiveAccounts calls refreshModelsForAccount WITHOUT allowInactive.
+    // The pre-existing bug wiped all availability + routes here with no restore. With the fix,
+    // the previously-discovered availability is restored, so the rebuild still sees the same
+    // 2 models and keeps the routes.
+    getModelsMock.mockRejectedValue(new Error('HTTP 429: rate limited'));
+    const second = await refreshModelsAndRebuildRoutes();
+    expect((second as any).rebuild.models).toBe(2);
+
+    // The account's availability and routes must survive the failed refresh.
+    const availabilityAfter = await db.select().from(schema.modelAvailability)
+      .where(eq(schema.modelAvailability.accountId, account.id)).all();
+    expect(availabilityAfter.length).toBe(2);
+
+    const routesAfter = await db.select().from(schema.tokenRoutes).all();
+    expect(routesAfter.length).toBe(2);
+
+    const channelsAfter = await db.select().from(schema.routeChannels).all();
+    expect(channelsAfter.length).toBe(2);
+  });
 });
