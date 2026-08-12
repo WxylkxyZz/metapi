@@ -4,6 +4,7 @@ import { eq, and } from 'drizzle-orm';
 import { sendNotification } from './notifyService.js';
 import { isCloudflareChallenge, isTokenExpiredError } from './alertRules.js';
 import { reportTokenExpired } from './alertService.js';
+import { bumpTokenExpirySignal, clearTokenExpirySignals } from './tokenExpiryDebounceService.js';
 import { refreshBalance } from './balanceService.js';
 import { parseCheckinRewardAmount } from './checkinRewardParser.js';
 import {
@@ -208,6 +209,10 @@ export async function checkinAccount(accountId: number, options?: { skipEvent?: 
   let refreshedBalanceInfo: Awaited<ReturnType<typeof refreshBalance>> | null = null;
 
   if (effectiveSuccess) {
+    // A successful checkin is a healthy terminal outcome: clear any accumulated partial
+    // token-expiry signals so a lone past failure never contributes to a future expiry.
+    clearTokenExpirySignals(account.id);
+
     const healthState = (unsupportedCheckin || manualVerificationRequired) ? 'degraded' : 'healthy';
     const healthReason = unsupportedCheckin
       ? '\u7ad9\u70b9\u4e0d\u652f\u6301\u7b7e\u5230\u63a5\u53e3'
@@ -286,12 +291,16 @@ export async function checkinAccount(accountId: number, options?: { skipEvent?: 
       source: 'checkin',
     });
     if (isTokenExpiredError({ message: result.message })) {
-      await reportTokenExpired({
-        accountId: account.id,
-        username: account.username,
-        siteName: site.name,
-        detail: result.message,
-      });
+      // Debounce: a single checkin auth-looking failure may be transient (site throttling,
+      // momentary one-off error). Only report expired once N signals within a short window.
+      if (bumpTokenExpirySignal(account.id)) {
+        await reportTokenExpired({
+          accountId: account.id,
+          username: account.username,
+          siteName: site.name,
+          detail: result.message,
+        });
+      }
     }
 
     if (isCloudflare) {

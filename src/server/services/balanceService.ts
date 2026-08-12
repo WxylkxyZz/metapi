@@ -3,6 +3,7 @@ import { getAdapter } from './platforms/index.js';
 import { eq } from 'drizzle-orm';
 import { appendSessionTokenRebindHint, isTokenExpiredError } from './alertRules.js';
 import { reportTokenExpired } from './alertService.js';
+import { bumpTokenExpirySignal, clearTokenExpirySignals } from './tokenExpiryDebounceService.js';
 import {
   buildStoredSub2ApiSubscriptionSummary,
   getAutoReloginConfig,
@@ -309,12 +310,16 @@ export async function refreshBalance(accountId: number) {
       source: 'balance',
     });
     if (shouldReportExpired(message)) {
-      await reportTokenExpired({
-        accountId: account.id,
-        username: account.username,
-        siteName: site.name,
-        detail: message,
-      });
+      // Debounce: a single balance-fetch auth-looking failure may be transient (site load,
+      // momentary one-off 401). Only report expired once N signals within a short window.
+      if (bumpTokenExpirySignal(account.id)) {
+        await reportTokenExpired({
+          accountId: account.id,
+          username: account.username,
+          siteName: site.name,
+          detail: message,
+        });
+      }
     }
     throw new Error(message);
   };
@@ -409,6 +414,10 @@ export async function refreshBalance(accountId: number) {
     .set(updates)
     .where(eq(schema.accounts.id, accountId))
     .run();
+
+  // A successful balance refresh is a healthy terminal outcome: clear any accumulated
+  // partial token-expiry signals so a lone past failure never contributes to a future expiry.
+  clearTokenExpirySignals(account.id);
 
   setAccountRuntimeHealth(account.id, {
     state: keepUnsupportedCheckinDegraded ? 'degraded' : 'healthy',

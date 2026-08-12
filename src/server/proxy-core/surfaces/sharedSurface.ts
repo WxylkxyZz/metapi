@@ -6,6 +6,7 @@ import { resolveProxyUsageWithSelfLogFallback } from '../../services/proxyUsageF
 import type { DownstreamRoutingPolicy } from '../../services/downstreamPolicyTypes.js';
 import { reportProxyAllFailed, reportTokenExpired } from '../../services/alertService.js';
 import { isTokenExpiredError } from '../../services/alertRules.js';
+import { bumpTokenExpirySignal } from '../../services/tokenExpiryDebounceService.js';
 import { shouldRetryProxyRequest } from '../../services/proxyRetryPolicy.js';
 import { composeProxyLogMessage } from '../../services/proxyLogMessage.js';
 import { resolveProxyLogBilling } from '../../services/proxyBilling.js';
@@ -567,12 +568,17 @@ export function createSurfaceFailureToolkit(input: {
       }));
 
       if (isTokenExpiredError({ status: args.status, message: args.errText })) {
-        runBestEffort('report token expired', () => reportTokenExpired({
-          accountId: args.selected.account.id,
-          username: args.selected.account.username,
-          siteName: args.selected.site.name,
-          detail: `HTTP ${args.status}`,
-        }));
+        // Debounce: a single auth-looking failure may be a transient upstream glitch.
+        // Only actually report the token expired once the account accumulates enough
+        // signals within a short window (see tokenExpiryDebounceService).
+        if (bumpTokenExpirySignal(args.selected.account.id)) {
+          runBestEffort('report token expired', () => reportTokenExpired({
+            accountId: args.selected.account.id,
+            username: args.selected.account.username,
+            siteName: args.selected.site.name,
+            detail: `HTTP ${args.status}`,
+          }));
+        }
       }
 
       if (shouldRetryProxyRequest(args.status, args.errText)) {

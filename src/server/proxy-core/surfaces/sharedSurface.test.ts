@@ -1,5 +1,6 @@
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { EMPTY_DOWNSTREAM_ROUTING_POLICY } from '../../services/downstreamPolicyTypes.js';
+import { clearTokenExpirySignals } from '../../services/tokenExpiryDebounceService.js';
 
 const selectChannelMock = vi.fn();
 const selectNextChannelMock = vi.fn();
@@ -142,6 +143,8 @@ describe('selectSurfaceChannelForAttempt', () => {
     buildStickySessionKeyMock.mockReset();
     consoleWarnMock.mockClear();
     consoleErrorMock.mockClear();
+    // Isolate the module-level token-expiry debounce counter between tests.
+    clearTokenExpirySignals(33);
   });
 
   it('refreshes models and retries selectChannel on the first attempt when no channel is available', async () => {
@@ -593,15 +596,61 @@ describe('selectSurfaceChannelForAttempt', () => {
         },
       },
     });
+    // Debounce gate: a single auth-looking failure must NOT report the token expired.
+    expect(reportTokenExpiredMock).not.toHaveBeenCalled();
+    expect(reportProxyAllFailedMock).toHaveBeenCalledWith({
+      model: 'gpt-5.2',
+      reason: 'upstream returned HTTP 401',
+    });
+  });
+
+  it('reports token expiration once the debounce threshold of repeated failures is reached', async () => {
+    composeProxyLogMessageMock.mockReturnValue('normalized error');
+    formatUtcSqlDateTimeMock.mockReturnValue('2026-03-21 22:00:00');
+    insertProxyLogMock.mockResolvedValue(undefined);
+    shouldRetryProxyRequestMock.mockReturnValue(false);
+    isTokenExpiredErrorMock.mockReturnValue(true);
+    recordOauthQuotaResetHintMock.mockResolvedValue(null);
+
+    const { createSurfaceFailureToolkit } = await import('./sharedSurface.js');
+    const toolkit = createSurfaceFailureToolkit({
+      warningScope: 'responses',
+      downstreamPath: '/v1/responses',
+      maxRetries: 2,
+      clientContext: null,
+      downstreamApiKeyId: null,
+    });
+
+    const args = {
+      selected: {
+        channel: { id: 11, routeId: 22 },
+        account: { id: 33, username: 'oauth-user' },
+        site: { name: 'Codex OAuth' },
+        actualModel: 'upstream-model',
+      },
+      requestedModel: 'gpt-5.2',
+      modelName: 'upstream-model',
+      status: 401,
+      errText: 'expired token',
+      rawErrText: 'expired token',
+      latencyMs: 900,
+      retryCount: 2,
+    };
+
+    // Repeated terminal auth failures (e.g. a genuinely expired token): the first
+    // threshold-1 calls only arm the debounce; the threshold-th call reports.
+    for (let i = 0; i < 4; i++) {
+      await toolkit.handleUpstreamFailure(args);
+    }
+    expect(reportTokenExpiredMock).not.toHaveBeenCalled();
+
+    await toolkit.handleUpstreamFailure(args);
+    expect(reportTokenExpiredMock).toHaveBeenCalledTimes(1);
     expect(reportTokenExpiredMock).toHaveBeenCalledWith({
       accountId: 33,
       username: 'oauth-user',
       siteName: 'Codex OAuth',
       detail: 'HTTP 401',
-    });
-    expect(reportProxyAllFailedMock).toHaveBeenCalledWith({
-      model: 'gpt-5.2',
-      reason: 'upstream returned HTTP 401',
     });
   });
 

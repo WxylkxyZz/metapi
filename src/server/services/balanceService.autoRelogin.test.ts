@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { clearTokenExpirySignals } from './tokenExpiryDebounceService.js';
 
 const adapterMock = {
   getBalance: vi.fn(),
@@ -102,6 +103,8 @@ describe('balanceService auto relogin', () => {
       ok: false,
       json: async () => ({}),
     });
+    // Isolate the module-level debounce counter between tests.
+    clearTokenExpirySignals(2);
   });
 
   it('retries balance fetch once after successful auto relogin', async () => {
@@ -144,7 +147,42 @@ describe('balanceService auto relogin', () => {
     expect(reportTokenExpiredMock).not.toHaveBeenCalled();
   });
 
-  it('reports token expired when relogin is unavailable', async () => {
+  it('reports token expired when relogin is unavailable and the expiry signal repeats', async () => {
+    selectAllMock.mockReturnValue([
+      {
+        accounts: {
+          id: 2,
+          username: 'linuxdo_7659',
+          accessToken: 'stale-token',
+          status: 'active',
+          extraConfig: null,
+        },
+        sites: {
+          id: 4,
+          name: 'kfc',
+          url: 'https://kfc-api.sxxe.net',
+          platform: 'new-api',
+        },
+      },
+    ]);
+
+    // A genuinely expired token fails repeatedly. The debounce gate requires the signal to
+    // repeat (TOKEN_EXPIRY_CONFIRM_THRESHOLD times within the window) before reporting.
+    adapterMock.getBalance.mockRejectedValue(
+      new Error('HTTP 401: access token required'),
+    );
+
+    const { refreshBalance } = await import('./balanceService.js');
+    const { TOKEN_EXPIRY_CONFIRM_THRESHOLD } = await import('./tokenExpiryDebounceService.js');
+    for (let i = 0; i < TOKEN_EXPIRY_CONFIRM_THRESHOLD; i++) {
+      await expect(refreshBalance(2)).rejects.toThrow('access token');
+    }
+
+    expect(adapterMock.login).not.toHaveBeenCalled();
+    expect(reportTokenExpiredMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not report token expired for a single transient 401 (debounce gate)', async () => {
     selectAllMock.mockReturnValue([
       {
         accounts: {
@@ -169,7 +207,7 @@ describe('balanceService auto relogin', () => {
     await expect(refreshBalance(2)).rejects.toThrow('access token');
 
     expect(adapterMock.login).not.toHaveBeenCalled();
-    expect(reportTokenExpiredMock).toHaveBeenCalledTimes(1);
+    expect(reportTokenExpiredMock).not.toHaveBeenCalled();
   });
 
   it('does not report token expired for generic forbidden balance errors', async () => {
