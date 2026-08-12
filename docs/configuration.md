@@ -161,6 +161,8 @@ Metapi 当前有三类主要配置入口：
 | `MODEL_AVAILABILITY_PROBE_INTERVAL_MS` | 批量测活间隔（毫秒） | `1800000` |
 | `MODEL_AVAILABILITY_PROBE_TIMEOUT_MS` | 批量测活单次探测超时（毫秒） | `15000` |
 | `MODEL_AVAILABILITY_PROBE_CONCURRENCY` | 批量测活并发数 | `1` |
+| `ADMIN_IP_ALLOWLIST` | 管理端来源 IP 白名单（逗号分隔，支持 CIDR） | 空 = 不限制 |
+| `TRUSTED_PROXY` | 反向代理来源 IP/网段（逗号分隔，支持 CIDR）。仅当直连对端命中时才采信 `X-Forwarded-For` | 空 = 忽略代理头，用真实 socket IP |
 
 注意：
 

@@ -1,4 +1,5 @@
 import type { FastifyReply, FastifyRequest } from 'fastify';
+import { extractClientIp } from './clientIp.js';
 
 type RateLimitOptions = {
   bucket: string;
@@ -23,22 +24,9 @@ function normalizeIp(rawIp: string | null | undefined): string {
   return ip;
 }
 
-function extractClientIp(request: FastifyRequest): string {
-  const forwarded = request.headers['x-forwarded-for'];
-  if (Array.isArray(forwarded)) {
-    const first = forwarded.find((value) => typeof value === 'string' && value.trim().length > 0);
-    if (first) return normalizeIp(first.split(',')[0]);
-  }
-
-  if (typeof forwarded === 'string' && forwarded.trim().length > 0) {
-    return normalizeIp(forwarded.split(',')[0]);
-  }
-
-  return normalizeIp(request.ip);
-}
-
 function getRateLimitKey(bucket: string, request: FastifyRequest): string {
-  return `${bucket}:${extractClientIp(request)}`;
+  const clientIp = extractClientIp(request.ip, request.headers['x-forwarded-for']);
+  return `${bucket}:${normalizeIp(clientIp)}`;
 }
 
 function pruneExpiredEntries(nowMs: number): void {

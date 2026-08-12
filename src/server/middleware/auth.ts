@@ -3,6 +3,7 @@ import { FastifyRequest, FastifyReply } from 'fastify';
 import { config } from '../config.js';
 import { authorizeDownstreamToken, consumeManagedKeyRequest } from '../services/downstreamApiKeyService.js';
 import { EMPTY_DOWNSTREAM_ROUTING_POLICY, type DownstreamRoutingPolicy } from '../services/downstreamPolicyTypes.js';
+import { extractClientIp as extractClientIpFromShared, isTrustedProxyIp, normalizeIp } from './clientIp.js';
 
 export interface ProxyAuthContext {
   token: string;
@@ -22,14 +23,6 @@ const proxyAuthContextByRequest = new WeakMap<FastifyRequest, ProxyAuthContext>(
 type ParsedAllowlistEntry =
   | { kind: 'exact'; normalizedIp: string }
   | { kind: 'cidr'; network: number; mask: number };
-
-function normalizeIp(rawIp: string | null | undefined): string {
-  const ip = (rawIp || '').trim();
-  if (!ip) return '';
-  if (ip.startsWith('::ffff:')) return ip.slice('::ffff:'.length).trim();
-  if (ip === '::1') return '127.0.0.1';
-  return ip;
-}
 
 function parseIpv4Value(rawIp: string): number | null {
   const normalizedIp = normalizeIp(rawIp);
@@ -79,17 +72,8 @@ export function findInvalidIpAllowlistEntries(allowlist: string[]): string[] {
   return allowlist.filter((item) => parseAllowlistEntry(item) === null);
 }
 
-export function extractClientIp(remoteIp: string | null | undefined, xForwardedFor?: string | string[] | undefined): string {
-  if (Array.isArray(xForwardedFor)) {
-    const first = xForwardedFor.find((item) => item && item.trim().length > 0);
-    if (first) {
-      return normalizeIp(first.split(',')[0]);
-    }
-  } else if (typeof xForwardedFor === 'string' && xForwardedFor.trim().length > 0) {
-    return normalizeIp(xForwardedFor.split(',')[0]);
-  }
-  return normalizeIp(remoteIp);
-}
+export const extractClientIp = extractClientIpFromShared;
+export { isTrustedProxyIp };
 
 export function isIpAllowed(clientIp: string, allowlist: string[]): boolean {
   if (!allowlist || allowlist.length === 0) return true;

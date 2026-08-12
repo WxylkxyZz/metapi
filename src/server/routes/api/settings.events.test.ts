@@ -335,7 +335,8 @@ describe('settings and auth events', () => {
 
     expect(response.statusCode).toBe(200);
     const body = response.json() as { currentAdminIp?: string; serverTimeZone?: string };
-    expect(body.currentAdminIp).toBe('203.0.113.5');
+    // Without a configured TRUSTED_PROXY, X-Forwarded-For must NOT be honored.
+    expect(body.currentAdminIp).toBe('10.0.0.8');
     expect(typeof body.serverTimeZone).toBe('string');
     expect((body.serverTimeZone || '').length).toBeGreaterThan(0);
   });
@@ -848,6 +849,7 @@ describe('settings and auth events', () => {
   });
 
   it('invalidates cached site proxy resolution when system proxy url changes', async () => {
+    await db.delete(schema.sites).run();
     await db.insert(schema.sites).values({
       name: 'proxy-site',
       url: 'https://proxy-site.example.com',

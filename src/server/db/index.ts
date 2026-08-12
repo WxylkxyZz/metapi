@@ -87,7 +87,12 @@ function resolveSqlitePath(): string {
     if (isolatedVitestPath) {
       return isolatedVitestPath;
     }
-    return resolve(`${config.dataDir}/hub.db`);
+    // Prefer the live DATA_DIR environment over the possibly-stale config.dataDir.
+    // config.dataDir is frozen at module load time; a test that sets DATA_DIR after
+    // config.js has already loaded would otherwise resolve to the repo data dir.
+    const liveDataDir = (process.env.DATA_DIR || '').trim();
+    const effectiveDataDir = liveDataDir ? liveDataDir : config.dataDir;
+    return resolve(`${effectiveDataDir}/hub.db`);
   }
   if (raw === ':memory:') return raw;
   if (raw.startsWith('file://')) {

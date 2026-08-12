@@ -116,6 +116,7 @@ export function buildConfig(env: NodeJS.ProcessEnv) {
     telegramMessageThreadId: (env.TELEGRAM_MESSAGE_THREAD_ID || '').trim(),
     notifyCooldownSec: Math.max(0, Math.trunc(parseNumber(env.NOTIFY_COOLDOWN_SEC, 300))),
     adminIpAllowlist: parseCsvList(env.ADMIN_IP_ALLOWLIST),
+    trustedProxy: parseCsvList(env.TRUSTED_PROXY),
     port: Math.trunc(parseNumber(env.PORT, 4000)),
     listenHost: parseListenHost(env),
     dataDir,
@@ -185,7 +186,10 @@ export function buildFastifyOptions(
 ): FastifyServerOptions {
   return {
     logger: true,
-    trustProxy: true,
+    // Only trust X-Forwarded-* headers when the operator has explicitly listed the
+    // reverse proxy IPs. With an empty list we keep trustProxy: false so request.ip is
+    // the real socket address and cannot be spoofed via a crafted X-Forwarded-For header.
+    trustProxy: Array.isArray(appConfig.trustedProxy) && appConfig.trustedProxy.length > 0,
     bodyLimit: appConfig.requestBodyLimit,
   };
 }

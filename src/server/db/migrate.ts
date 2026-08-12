@@ -88,7 +88,12 @@ const VERIFIED_SCHEMA_MARKERS: SchemaMarker[] = [
 
 function resolveSqliteDbPath(): string {
   const raw = (config.dbUrl || '').trim();
-  if (!raw) return resolve(`${config.dataDir}/hub.db`);
+  if (!raw) {
+    // Prefer the live DATA_DIR env over the possibly-stale config.dataDir (see index.js).
+    const liveDataDir = (process.env.DATA_DIR || '').trim();
+    const effectiveDataDir = liveDataDir ? liveDataDir : config.dataDir;
+    return resolve(`${effectiveDataDir}/hub.db`);
+  }
   if (raw === ':memory:') return raw;
   if (raw.startsWith('file://')) {
     const parsed = new URL(raw);
