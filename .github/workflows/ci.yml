@@ -1,6 +1,5 @@
 name: CI
 
-# Fork 分离后验证 push 事件触发（临时测试注释）
 on:
   push:
     branches: [main, master]
@@ -348,7 +347,10 @@ jobs:
 
   publish-docker-arch:
     name: Publish Docker Image (${{ matrix.arch }})
-    if: github.event_name == 'push'
+    # Publishing is opt-in because it sends artifacts to an external registry.
+    # Set repository variable DOCKER_PUBLISH_ENABLED=true and configure the
+    # DOCKERHUB_USERNAME / DOCKERHUB_TOKEN secrets to enable it.
+    if: github.event_name == 'push' && vars.DOCKER_PUBLISH_ENABLED == 'true'
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 45
     env:
@@ -424,7 +426,7 @@ jobs:
 
   publish-docker:
     name: Publish Docker Manifest
-    if: github.event_name == 'push'
+    if: github.event_name == 'push' && vars.DOCKER_PUBLISH_ENABLED == 'true'
     runs-on: ubuntu-latest
     needs: publish-docker-arch
     timeout-minutes: 15
