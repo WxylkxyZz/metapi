@@ -1,5 +1,6 @@
 name: CI
 
+# Fork 分离后验证 push 事件触发（临时测试注释）
 on:
   push:
     branches: [main, master]
