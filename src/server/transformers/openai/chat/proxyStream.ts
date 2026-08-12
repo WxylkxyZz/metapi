@@ -342,6 +342,7 @@ export function createChatProxyStreamSession(input: ChatProxyStreamSessionInput)
         pullEvents: (buffer) => downstreamTransformer.pullSseEvents(buffer),
         handleEvent: handleEventBlock,
         onEof: finalize,
+        idleTimeoutMs: Math.max(0, Math.trunc((config.proxyStreamIdleTimeoutSec || 0) * 1000)),
       });
       await lifecycle.run();
       return terminalResult;

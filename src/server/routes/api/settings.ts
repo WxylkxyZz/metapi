@@ -90,6 +90,7 @@ interface RuntimeSettingsBody {
   adminIpAllowlist?: string[] | string;
   routingFallbackUnitCost?: number;
   proxyFirstByteTimeoutSec?: number;
+  proxyStreamIdleTimeoutSec?: number;
   tokenRouterFailureCooldownMaxSec?: number;
   routingWeights?: Partial<RoutingWeights>;
   proxyErrorKeywords?: string[] | string;
@@ -681,6 +682,7 @@ function getRuntimeSettingsResponse(currentAdminIp = '') {
     proxyDebugMaxBodyBytes: config.proxyDebugMaxBodyBytes,
     routingFallbackUnitCost: config.routingFallbackUnitCost,
     proxyFirstByteTimeoutSec: config.proxyFirstByteTimeoutSec,
+    proxyStreamIdleTimeoutSec: config.proxyStreamIdleTimeoutSec,
     tokenRouterFailureCooldownMaxSec: config.tokenRouterFailureCooldownMaxSec,
     routingWeights: config.routingWeights,
     webhookUrl: config.webhookUrl,
@@ -1557,6 +1559,19 @@ export async function settingsRoutes(app: FastifyInstance) {
       }
       config.proxyFirstByteTimeoutSec = normalized;
       upsertSetting('proxy_first_byte_timeout_sec', normalized);
+    }
+
+    if (body.proxyStreamIdleTimeoutSec !== undefined) {
+      const nextProxyStreamIdleTimeoutSec = Number(body.proxyStreamIdleTimeoutSec);
+      if (!Number.isFinite(nextProxyStreamIdleTimeoutSec) || nextProxyStreamIdleTimeoutSec < 0) {
+        return reply.code(400).send({ success: false, message: '流空闲超时必须是大于等于 0 的数字（秒）' });
+      }
+      const normalized = Math.max(0, Math.trunc(nextProxyStreamIdleTimeoutSec));
+      if (normalized !== config.proxyStreamIdleTimeoutSec) {
+        changedLabels.push(`流空闲超时（${config.proxyStreamIdleTimeoutSec}s -> ${normalized}s）`);
+      }
+      config.proxyStreamIdleTimeoutSec = normalized;
+      upsertSetting('proxy_stream_idle_timeout_sec', normalized);
     }
 
     if (body.tokenRouterFailureCooldownMaxSec !== undefined) {

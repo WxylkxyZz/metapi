@@ -220,6 +220,11 @@ export function applyRuntimeSettings(settingsMap: Map<string, string>) {
     config.proxyFirstByteTimeoutSec = Math.max(0, Math.trunc(proxyFirstByteTimeoutSec));
   }
 
+  const proxyStreamIdleTimeoutSec = parseSettingFromMap<number>(settingsMap, 'proxy_stream_idle_timeout_sec');
+  if (typeof proxyStreamIdleTimeoutSec === 'number' && Number.isFinite(proxyStreamIdleTimeoutSec) && proxyStreamIdleTimeoutSec >= 0) {
+    config.proxyStreamIdleTimeoutSec = Math.max(0, Math.trunc(proxyStreamIdleTimeoutSec));
+  }
+
   const tokenRouterFailureCooldownMaxSec = parseSettingFromMap<number>(settingsMap, 'token_router_failure_cooldown_max_sec');
   const normalizedFailureCooldownMaxSec = normalizeTokenRouterFailureCooldownMaxSec(tokenRouterFailureCooldownMaxSec);
   if (normalizedFailureCooldownMaxSec != null) {

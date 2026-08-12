@@ -279,6 +279,7 @@ export function createResponsesProxyStreamSession(input: ResponsesProxyStreamSes
         pullEvents: (buffer) => openAiResponsesStream.pullSseEvents(buffer),
         handleEvent: handleEventBlock,
         onEof: closeOut,
+        idleTimeoutMs: Math.max(0, Math.trunc((config.proxyStreamIdleTimeoutSec || 0) * 1000)),
       });
       await lifecycle.run();
       return terminalResult;
