@@ -192,6 +192,28 @@ describe('account token batch routes', () => {
     });
   });
 
+  it('rebuilds routes from the database only when toggling tokens — never fetches upstream model lists', async () => {
+    const workflowModule = await import('../../services/routeRefreshWorkflow.js');
+    const rebuildSpy = vi.spyOn(workflowModule, 'rebuildRoutesOnly');
+    const refreshSpy = vi.spyOn(workflowModule, 'refreshModelsAndRebuildRoutes');
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/account-tokens/batch',
+      payload: {
+        ids: [1],
+        action: 'enable',
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(rebuildSpy).toHaveBeenCalledTimes(1);
+    expect(refreshSpy).not.toHaveBeenCalled();
+
+    rebuildSpy.mockRestore();
+    refreshSpy.mockRestore();
+  });
+
   it('rejects invalid account token batch action', async () => {
     const response = await app.inject({
       method: 'POST',

@@ -20,7 +20,7 @@ import { getCredentialModeFromExtraConfig, getProxyUrlFromExtraConfig, resolvePl
 import { startBackgroundTask } from '../../services/backgroundTaskService.js';
 import { withAccountProxyOverride } from '../../services/siteProxy.js';
 import { type ModelRefreshResult } from '../../services/modelService.js';
-import { refreshModelsAndRebuildRoutes } from '../../services/routeRefreshWorkflow.js';
+import { rebuildRoutesOnly } from '../../services/routeRefreshWorkflow.js';
 import {
   type CoverageBatchRebuildResult,
   convergeAccountMutation,
@@ -756,11 +756,12 @@ export async function accountTokensRoutes(app: FastifyInstance) {
       }
     }
 
-    // 启用/禁用令牌会改变可用通道集合，需先刷新模型列表再重建路由，以反映最新状态。
-    // 仅刷新模型（请求模型列表），不做模型测活。
+    // 启用/禁用令牌只改变 database 中的 enabled 状态，重建查询本身就按 enabled 过滤
+    // （rebuildTokenRoutesFromAvailability 的 tokenModelAvailability 查询含 enabled=true），
+    // 因此只需纯库内重建即可反映最新通道，无需请求上游模型列表。
     if (action === 'enable' || action === 'disable') {
       try {
-        await refreshModelsAndRebuildRoutes();
+        await rebuildRoutesOnly();
       } catch (error: any) {
         console.warn(`[account-tokens] route rebuild failed after batch ${action}: ${error?.message || 'unknown error'}`);
       }
@@ -855,11 +856,11 @@ export async function accountTokensRoutes(app: FastifyInstance) {
       ? await refreshCoverageForAccounts([existing.accountId])
       : null;
 
-    // 启用/禁用令牌会改变可用通道集合，需先刷新模型列表再重建路由，以反映最新状态。
-    // 仅刷新模型（请求模型列表），不做模型测活。
+    // 启用/禁用令牌只改变 database 中的 enabled 状态，重建查询本身就按 enabled 过滤，
+    // 因此只需纯库内重建即可反映最新通道，无需请求上游模型列表。
     if (coverageRefresh === null && body.enabled !== undefined && body.enabled !== existing.enabled) {
       try {
-        await refreshModelsAndRebuildRoutes();
+        await rebuildRoutesOnly();
       } catch (error: any) {
         console.warn(`[account-tokens] route rebuild failed after token ${tokenId} enable/disable: ${error?.message || 'unknown error'}`);
       }
