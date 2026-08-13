@@ -61,13 +61,13 @@ function getWindowIconPath() {
 }
 
 function resolveFrontendUrl() {
-  const devUrl = (process.env.METAPI_DESKTOP_DEV_SERVER_URL || '').trim();
+  const devUrl = (process.env.CANOPY_DESKTOP_DEV_SERVER_URL || '').trim();
   if (devUrl) return devUrl;
   return serverUrl;
 }
 
 function resolveExternalServerUrl() {
-  return (process.env.METAPI_DESKTOP_EXTERNAL_SERVER_URL || '').trim();
+  return (process.env.CANOPY_DESKTOP_EXTERNAL_SERVER_URL || '').trim();
 }
 
 function showMainWindow() {
@@ -80,7 +80,7 @@ function showMainWindow() {
 function buildTrayMenu() {
   return Menu.buildFromTemplate([
     {
-      label: 'Open Metapi',
+      label: 'Open Canopy',
       click: () => showMainWindow(),
     },
     {
@@ -132,7 +132,7 @@ function setupTray() {
     trayImage.setTemplateImage(true);
   }
   tray = new Tray(trayImage);
-  tray.setToolTip('Metapi');
+  tray.setToolTip('Canopy');
   tray.setContextMenu(buildTrayMenu());
   tray.on('double-click', () => showMainWindow());
 }
@@ -278,8 +278,8 @@ async function handleServerCrash(code: number | null) {
   mainWindow?.hide();
   const result = await dialog.showMessageBox({
     type: 'error',
-    title: 'Metapi backend stopped',
-    message: `The local Metapi backend exited unexpectedly${typeof code === 'number' ? ` (code ${code})` : ''}.`,
+    title: 'Canopy backend stopped',
+    message: `The local Canopy backend exited unexpectedly${typeof code === 'number' ? ` (code ${code})` : ''}.`,
     detail: 'You can restart the backend now or quit the desktop app.',
     buttons: ['Restart Backend', 'Quit'],
     defaultId: 0,
@@ -314,7 +314,7 @@ async function restartBackend() {
     await dialog.showMessageBox({
       type: 'error',
       title: 'Restart failed',
-      message: 'Metapi could not restart the local backend.',
+      message: 'Canopy could not restart the local backend.',
       detail: error instanceof Error ? error.message : String(error),
     });
   } finally {
@@ -358,7 +358,7 @@ function setupAutoUpdater() {
     const result = await dialog.showMessageBox({
       type: 'info',
       title: 'Update available',
-      message: `Metapi ${info.version} is available.`,
+      message: `Canopy ${info.version} is available.`,
       detail: 'Download and install it after the current session?',
       buttons: ['Download', 'Later'],
       defaultId: 0,
@@ -378,7 +378,7 @@ function setupAutoUpdater() {
     const result = await dialog.showMessageBox({
       type: 'info',
       title: 'Update ready',
-      message: 'The new Metapi desktop update is ready to install.',
+      message: 'The new Canopy desktop update is ready to install.',
       buttons: ['Install and Restart', 'Later'],
       defaultId: 0,
       cancelId: 1,
@@ -424,11 +424,11 @@ if (!hasSingleInstanceLock) {
       try {
         await bootDesktopApp();
       } catch (error) {
-        log.error('Failed to boot Metapi desktop', error);
+        log.error('Failed to boot Canopy desktop', error);
         const result = await dialog.showMessageBox({
           type: 'error',
-          title: 'Metapi failed to start',
-          message: 'The desktop shell could not start the local Metapi service.',
+          title: 'Canopy failed to start',
+          message: 'The desktop shell could not start the local Canopy service.',
           detail: error instanceof Error ? error.message : String(error),
           buttons: ['Retry', 'Quit'],
           defaultId: 0,

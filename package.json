@@ -1,7 +1,7 @@
 {
-  "name": "metapi",
-  "version": "1.3.0",
-  "description": "Meta-layer management and unified proxy for AI API aggregation platforms",
+  "name": "canopy",
+  "version": "1.0.0",
+  "description": "Canopy — meta-layer management and unified proxy for AI API aggregation platforms",
   "main": "dist/desktop/main.js",
   "keywords": [
     "ai",
@@ -12,13 +12,13 @@
     "claude",
     "aggregator"
   ],
-  "homepage": "https://github.com/WxylkxyZz/metapi#readme",
+  "homepage": "https://github.com/WxylkxyZz/canopy#readme",
   "bugs": {
-    "url": "https://github.com/WxylkxyZz/metapi/issues"
+    "url": "https://github.com/WxylkxyZz/canopy/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/WxylkxyZz/metapi.git"
+    "url": "git+https://github.com/WxylkxyZz/canopy.git"
   },
   "license": "MIT",
   "engines": {
@@ -43,9 +43,6 @@
     "dist:desktop:mac:intel": "npm run build && electron-builder --config electron-builder.yml --publish never --mac --x64",
     "package:desktop": "npm run dist:desktop",
     "package:desktop:mac:intel": "npm run dist:desktop:mac:intel",
-    "docs:dev": "vitepress dev docs --host 0.0.0.0 --port 4173",
-    "docs:build": "vitepress build docs",
-    "docs:preview": "vitepress preview docs --host 0.0.0.0 --port 4173",
     "start": "node dist/server/index.js",
     "start:desktop": "electron dist/desktop/main.js",
     "db:generate": "drizzle-kit generate",
@@ -122,8 +119,6 @@
     "tsx": "^4.19.2",
     "typescript": "^6.0.3",
     "vite": "^6.4.2",
-    "vitepress": "^1.6.4",
-    "vitepress-plugin-mermaid": "^2.0.17",
     "vitest": "^2.1.8",
     "wait-on": "^9.0.10"
   },

@@ -1,7 +1,7 @@
 import { tr } from '../i18n.js';
 import { SITE_DOCS_URL } from '../docsLink.js';
 
-const VERSION = '1.3.0';
+const VERSION = '1.0.0';
 
 const FEATURES = [
   { icon: '🌐', title: '统一代理网关', desc: '一个 Key、一个入口，兼容 OpenAI / Claude 下游格式' },
@@ -24,7 +24,7 @@ const TECH_STACK = [
 ];
 
 const LINKS = [
-  { label: 'GitHub', href: 'https://github.com/WxylkxyZz/metapi', icon: '📂' },
+  { label: 'GitHub', href: 'https://github.com/WxylkxyZz/canopy', icon: '📂' },
   { label: '站点文档', href: SITE_DOCS_URL, icon: '📚' },
 ];
 
@@ -33,7 +33,7 @@ export default function About() {
     <div className="animate-fade-in" style={{ maxWidth: 860 }}>
       {/* Header */}
       <div className="page-header" style={{ marginBottom: 14 }}>
-        <h2 className="page-title">{tr('关于 Metapi')}</h2>
+        <h2 className="page-title">{tr('关于 Canopy')}</h2>
       </div>
 
       {/* Hero card */}
@@ -41,11 +41,11 @@ export default function About() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 14 }}>
           <img
             src="/logo.png"
-            alt="Metapi"
+            alt="Canopy"
             style={{ width: 48, height: 48, borderRadius: 12, flexShrink: 0 }}
           />
           <div>
-            <div style={{ fontSize: 18, fontWeight: 700 }}>Metapi</div>
+            <div style={{ fontSize: 18, fontWeight: 700 }}>Canopy</div>
             <div style={{ fontSize: 12, color: 'var(--color-text-tertiary)', marginTop: 2 }}>v{VERSION}</div>
           </div>
         </div>
@@ -136,7 +136,7 @@ export default function About() {
       <div className="card animate-slide-up stagger-5" style={{ padding: 22 }}>
         <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 10 }}>{tr('数据与隐私')}</h3>
         <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', lineHeight: 1.8 }}>
-          {tr('Metapi 完全自托管，所有数据（账号、令牌、路由、日志）均存储在本地 SQLite 数据库中，不会向任何第三方发送数据。代理请求仅在你的服务器与上游站点之间直连传输。')}
+          {tr('Canopy 完全自托管，所有数据（账号、令牌、路由、日志）均存储在本地 SQLite 数据库中，不会向任何第三方发送数据。代理请求仅在你的服务器与上游站点之间直连传输。')}
         </div>
       </div>
     </div>

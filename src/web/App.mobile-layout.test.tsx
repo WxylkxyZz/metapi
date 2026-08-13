@@ -67,9 +67,9 @@ vi.mock('./pages/Dashboard.js', () => ({
 
 function createLocalStorage() {
   const store = new Map<string, string>([
-    ['metapi.theme.mode', 'light'],
-    ['metapi.firstUseDocReminder', '1'],
-    ['metapi.userProfile', JSON.stringify({
+    ['canopy.theme.mode', 'light'],
+    ['canopy.firstUseDocReminder', '1'],
+    ['canopy.userProfile', JSON.stringify({
       name: '管理员',
       avatarSeed: 'seed-1',
       avatarStyle: 'identicon',

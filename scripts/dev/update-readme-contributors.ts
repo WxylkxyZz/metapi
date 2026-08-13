@@ -3,8 +3,9 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const REPO = 'cita-777/metapi';
-const README_FILES = ['README.md', 'README_EN.md'] as const;
+const REPO = 'WxylkxyZz/canopy';
+const README_FILES = ['README.md'] as const;
+// Keep the original marker text so legacy READMEs can still be updated in place.
 const START_MARKER = '<!-- metapi-contributors:start -->';
 const END_MARKER = '<!-- metapi-contributors:end -->';
 const PER_LINE = 10;

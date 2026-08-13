@@ -1,5 +1,5 @@
-appId: me.wxylkxyz.metapi.desktop
-productName: Metapi
+appId: me.wxylkxyz.canopy.desktop
+productName: Canopy
 artifactName: ${name}-${version}-${os}-${arch}.${ext}
 directories:
   output: release

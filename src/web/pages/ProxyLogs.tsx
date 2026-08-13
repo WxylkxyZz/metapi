@@ -85,7 +85,7 @@ const DEFAULT_PAGE_SIZE = 50;
 const TRACE_TABLE_LIMIT = 20;
 const DEBUG_TRACE_PAGE_SIZE = 5;
 const PROXY_LOGS_DEBUG_TRACE_PANEL_STORAGE_KEY =
-  "metapi.proxyLogs.debugTracePanelExpanded";
+  "canopy.proxyLogs.debugTracePanelExpanded";
 const PROXY_LOG_CLIENT_FAMILY_LABELS: Record<string, string> = {
   codex: "Codex",
   claude_code: "Claude Code",

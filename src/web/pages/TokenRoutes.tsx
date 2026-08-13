@@ -1041,7 +1041,7 @@ export default function TokenRoutes() {
   };
 
   const handleDeleteChannel = async (channelId: number, routeId: number) => {
-    const dismissedKey = 'metapi:channel-delete-warning-dismissed';
+    const dismissedKey = 'canopy:channel-delete-warning-dismissed';
     const dismissed = localStorage.getItem(dismissedKey) === 'true';
     if (!dismissed) {
       const dontAskAgain = { checked: false };

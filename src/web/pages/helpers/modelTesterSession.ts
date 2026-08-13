@@ -159,7 +159,7 @@ export type TestChatPayload = TesterProxyEnvelope;
 export type ProxyTestEnvelope = TesterProxyEnvelope;
 
 export const MODEL_TESTER_SESSION_VERSION = 5;
-export const MODEL_TESTER_STORAGE_KEY = 'metapi:model-tester:session:v5';
+export const MODEL_TESTER_STORAGE_KEY = 'canopy:model-tester:session:v5';
 
 export const DEFAULT_INPUTS: ModelTesterInputs = {
   mode: 'conversation',

@@ -3,7 +3,7 @@ import { clearAuthSession } from './authSession.js';
 export const THEME_MODE_STORAGE_KEY = 'theme_mode';
 export const LEGACY_THEME_STORAGE_KEY = 'theme';
 export const USER_PROFILE_STORAGE_KEY = 'user_profile';
-export const FIRST_USE_DOC_REMINDER_KEY = 'metapi_first_use_docs_reminder_seen_v1';
+export const FIRST_USE_DOC_REMINDER_KEY = 'canopy_first_use_docs_reminder_seen_v1';
 
 type StorageLike = {
   getItem?: (key: string) => string | null;

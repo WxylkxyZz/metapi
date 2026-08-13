@@ -214,7 +214,7 @@ describe('ImportExport', () => {
       success: true,
       config: {
         enabled: true,
-        fileUrl: 'https://dav.example.com/backups/metapi.json',
+        fileUrl: 'https://dav.example.com/backups/canopy.json',
         username: 'alice',
         exportType: 'all',
         autoSyncEnabled: true,
@@ -231,7 +231,7 @@ describe('ImportExport', () => {
       success: true,
       config: {
         enabled: true,
-        fileUrl: 'https://dav.example.com/backups/metapi.json',
+        fileUrl: 'https://dav.example.com/backups/canopy.json',
         username: 'alice',
         exportType: 'all',
         autoSyncEnabled: true,
@@ -246,7 +246,7 @@ describe('ImportExport', () => {
     });
     apiMock.exportBackupToWebdav.mockResolvedValue({
       success: true,
-      fileUrl: 'https://dav.example.com/backups/metapi.json',
+      fileUrl: 'https://dav.example.com/backups/canopy.json',
       exportType: 'all',
     });
     apiMock.importBackupFromWebdav.mockResolvedValue({
@@ -308,7 +308,7 @@ describe('ImportExport', () => {
     }
   });
 
-  it('does not label native metapi backups as ALL-API-Hub V2', async () => {
+  it('does not label native canopy backups as ALL-API-Hub V2', async () => {
     let root!: WebTestRenderer;
     try {
       await act(async () => {
@@ -459,7 +459,7 @@ describe('ImportExport', () => {
 
       const fileUrlInput = root!.root.findAll((node) => (
         node.type === 'input'
-        && node.props.placeholder === 'https://dav.example.com/backups/metapi.json'
+        && node.props.placeholder === 'https://dav.example.com/backups/canopy.json'
       )).at(-1);
       const cronInput = root!.root.findAll((node) => (
         node.type === 'input'
@@ -507,7 +507,7 @@ describe('ImportExport', () => {
 
       const fileUrlInput = root!.root.findAll((node) => (
         node.type === 'input'
-        && node.props.placeholder === 'https://dav.example.com/backups/metapi.json'
+        && node.props.placeholder === 'https://dav.example.com/backups/canopy.json'
       )).at(-1);
 
       expect(fileUrlInput).toBeTruthy();
@@ -538,7 +538,7 @@ describe('ImportExport', () => {
       success: true,
       config: {
         enabled: true,
-        fileUrl: 'https://dav.example.com/backups/metapi.json',
+        fileUrl: 'https://dav.example.com/backups/canopy.json',
         username: 'alice',
         exportType: 'all',
         autoSyncEnabled: true,

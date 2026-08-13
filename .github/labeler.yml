@@ -27,9 +27,7 @@
 "area: docs":
   - changed-files:
       - any-glob-to-any-file:
-          - "docs/**"
           - "README.md"
-          - "README_EN.md"
 
 "area: scripts":
   - changed-files:

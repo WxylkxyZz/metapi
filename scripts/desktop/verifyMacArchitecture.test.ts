@@ -11,7 +11,7 @@ function createReleaseBinary() {
   const releaseDir = mkdtempSync(join(tmpdir(), 'metapi-mac-arch-'));
   tempDirs.push(releaseDir);
 
-  const binaryPath = join(releaseDir, 'mac-x64', 'Metapi.app', 'Contents', 'MacOS', 'Metapi');
+  const binaryPath = join(releaseDir, 'mac-x64', 'Canopy.app', 'Contents', 'MacOS', 'Canopy');
   mkdirSync(dirname(binaryPath), { recursive: true });
   writeFileSync(binaryPath, 'binary');
 

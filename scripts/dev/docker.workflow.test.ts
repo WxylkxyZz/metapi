@@ -24,11 +24,11 @@ describe('docker workflows', () => {
     const ciWorkflow = readFileSync(resolve(process.cwd(), '.github/workflows/ci.yml'), 'utf8');
     const releaseWorkflow = readFileSync(resolve(process.cwd(), '.github/workflows/release.yml'), 'utf8');
 
-    expect(ciWorkflow).toContain('DOCKERHUB_IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/metapi');
-    expect(ciWorkflow).not.toContain('images: 1467078763/metapi');
+    expect(ciWorkflow).toContain('DOCKERHUB_IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/canopy');
+    expect(ciWorkflow).not.toContain('images: 1467078763/canopy');
 
-    expect(releaseWorkflow).toContain('DOCKERHUB_IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/metapi');
-    expect(releaseWorkflow).not.toContain('1467078763/metapi');
+    expect(releaseWorkflow).toContain('DOCKERHUB_IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/canopy');
+    expect(releaseWorkflow).not.toContain('1467078763/canopy');
   });
 
   it('uses a Node 25 base image in the Dockerfile (no armv7 variant)', () => {

@@ -39,8 +39,8 @@ export function buildDesktopServerEnv(input: DesktopServerEnvInput): NodeJS.Proc
     HOST: host,
     PORT: String(input.port),
     DATA_DIR: input.userDataDir,
-    METAPI_DESKTOP: '1',
-    METAPI_LOG_DIR: input.logsDir,
+    CANOPY_DESKTOP: '1',
+    CANOPY_LOG_DIR: input.logsDir,
   };
 }
 
@@ -53,7 +53,7 @@ export function createDesktopHealthUrl(port: number): string {
 }
 
 export function resolveDesktopServerPort(env?: NodeJS.ProcessEnv): number {
-  const forcedPort = Number.parseInt(env?.METAPI_DESKTOP_SERVER_PORT || '', 10);
+  const forcedPort = Number.parseInt(env?.CANOPY_DESKTOP_SERVER_PORT || '', 10);
   if (Number.isFinite(forcedPort) && forcedPort > 0) return forcedPort;
   return DEFAULT_DESKTOP_SERVER_PORT;
 }
@@ -78,7 +78,7 @@ export async function waitForServerReady(input: WaitForServerReadyInput): Promis
     await delay(intervalMs);
   }
 
-  throw new Error('Timed out waiting for metapi desktop server');
+  throw new Error('Timed out waiting for canopy desktop server');
 }
 
 export function isFatalServerExit(exitState: ServerExitState): boolean {

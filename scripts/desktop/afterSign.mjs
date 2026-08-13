@@ -11,16 +11,16 @@ export default async function afterSign(context) {
   const signature = await ensureAdHocSignature(appPath);
 
   if (!appleId || !appleIdPassword || !teamId) {
-    console.log('[metapi-desktop] Skipping notarization: APPLE_ID / APPLE_APP_SPECIFIC_PASSWORD / APPLE_TEAM_ID not fully configured.');
+    console.log('[canopy-desktop] Skipping notarization: APPLE_ID / APPLE_APP_SPECIFIC_PASSWORD / APPLE_TEAM_ID not fully configured.');
     return;
   }
 
   if (signature.isAdHoc) {
-    console.log('[metapi-desktop] Skipping notarization: macOS app is only ad-hoc signed. Configure a Developer ID certificate to enable notarization.');
+    console.log('[canopy-desktop] Skipping notarization: macOS app is only ad-hoc signed. Configure a Developer ID certificate to enable notarization.');
     return;
   }
 
-  console.log('[metapi-desktop] Notarizing macOS build...');
+  console.log('[canopy-desktop] Notarizing macOS build...');
   await notarize({
     appPath,
     appleId,

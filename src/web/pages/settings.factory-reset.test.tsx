@@ -94,7 +94,7 @@ describe('Settings factory reset', () => {
       theme_mode: 'dark',
       theme: 'dark',
       user_profile: JSON.stringify({ name: '管理员', avatarSeed: 'seed', avatarStyle: 'bottts' }),
-      metapi_first_use_docs_reminder_seen_v1: '1',
+      canopy_first_use_docs_reminder_seen_v1: '1',
     });
 
     Object.defineProperty(globalThis, 'localStorage', {

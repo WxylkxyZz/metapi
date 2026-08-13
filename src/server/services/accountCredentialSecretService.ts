@@ -60,7 +60,7 @@ export async function ensureAccountCredentialSecret(): Promise<string> {
 }
 
 export function generateStrongSecret(): string {
-  return `metapi-${randomBytes(32).toString('base64url')}`;
+  return `canopy-${randomBytes(32).toString('base64url')}`;
 }
 
 export function isUsingFallbackCredentialSecret(): boolean {

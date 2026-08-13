@@ -23,7 +23,7 @@ describe('desktop runtime helpers', () => {
     expect(env.HOST).toBe('0.0.0.0');
     expect(env.PORT).toBe('4312');
     expect(env.DATA_DIR).toBe('/tmp/metapi-data');
-    expect(env.METAPI_LOG_DIR).toBe('/tmp/metapi-logs');
+    expect(env.CANOPY_LOG_DIR).toBe('/tmp/metapi-logs');
     expect(env.AUTH_TOKEN).toBe('admin-token');
     expect(env.PROXY_TOKEN).toBe('proxy-token');
   });
@@ -38,7 +38,7 @@ describe('desktop runtime helpers', () => {
 
   it('honors explicit desktop backend port override', () => {
     expect(resolveDesktopServerPort({
-      METAPI_DESKTOP_SERVER_PORT: '4312',
+      CANOPY_DESKTOP_SERVER_PORT: '4312',
     })).toBe(4312);
   });
 
@@ -80,7 +80,7 @@ describe('desktop runtime helpers', () => {
       fetcher,
       timeoutMs: 10,
       intervalMs: 1,
-    })).rejects.toThrow('Timed out waiting for metapi desktop server');
+    })).rejects.toThrow('Timed out waiting for canopy desktop server');
   });
 
   it('treats non-zero non-signal exits as fatal', () => {

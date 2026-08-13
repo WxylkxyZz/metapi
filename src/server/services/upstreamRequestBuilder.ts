@@ -85,7 +85,7 @@ const GENERIC_PASSTHROUGH_ALLOWED_HEADERS = new Set([
   'x-codex-turn-metadata',
   'x-codex-turn-state',
 ]);
-const METAPI_INTERNAL_HEADER_BLOCKLIST = new Set([
+const CANOPY_INTERNAL_HEADER_BLOCKLIST = new Set([
   'x-metapi-tester-request',
   'x-metapi-tester-forced-channel-id',
   'x-metapi-responses-websocket-mode',
@@ -96,7 +96,7 @@ const ANTIGRAVITY_RUNTIME_USER_AGENT = 'antigravity/1.19.6 darwin/arm64';
 
 function shouldSkipPassthroughHeader(key: string): boolean {
   if (HOP_BY_HOP_HEADERS.has(key) || BLOCKED_PASSTHROUGH_HEADERS.has(key)) return true;
-  if (METAPI_INTERNAL_HEADER_BLOCKLIST.has(key)) return true;
+  if (CANOPY_INTERNAL_HEADER_BLOCKLIST.has(key)) return true;
   if (key.startsWith('x-metapi-')) return true;
   if (!GENERIC_PASSTHROUGH_ALLOWED_HEADERS.has(key)) return true;
   return false;

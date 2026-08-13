@@ -8,7 +8,7 @@
 # Leave them empty (default) to build without a proxy. The proxy is passed as a
 # build argument only — it is NOT baked into the resulting image.
 services:
-  metapi:
+  canopy:
     image: ~
     build:
       context: ..

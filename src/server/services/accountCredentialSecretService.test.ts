@@ -48,7 +48,7 @@ describe('accountCredentialSecretService', () => {
 
     expect(secret).toBeTruthy();
     expect(secret).not.toBe(DEFAULT_ADMIN_TOKEN);
-    expect(secret).toMatch(/^metapi-/);
+    expect(secret).toMatch(/^canopy-/);
 
     const [row] = await dbModule.db.select().from(dbModule.schema.settings)
       .where((table: typeof dbModule.schema.settings) => table.key === service.ACCOUNT_CREDENTIAL_SECRET_SETTING_KEY)
@@ -102,7 +102,7 @@ describe('accountCredentialSecretService', () => {
   it('generateStrongSecret produces unique strong values', () => {
     const a = service.generateStrongSecret();
     const b = service.generateStrongSecret();
-    expect(a).toMatch(/^metapi-/);
+    expect(a).toMatch(/^canopy-/);
     expect(a).not.toBe(b);
     expect(a.length).toBeGreaterThan(40);
   });
@@ -111,7 +111,7 @@ describe('accountCredentialSecretService', () => {
     config.accountCredentialSecret = DEFAULT_ADMIN_TOKEN;
     expect(service.isUsingFallbackCredentialSecret()).toBe(true);
 
-    config.accountCredentialSecret = 'metapi-strong-secret';
+    config.accountCredentialSecret = 'canopy-strong-secret';
     expect(service.isUsingFallbackCredentialSecret()).toBe(false);
   });
 });

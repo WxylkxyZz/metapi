@@ -23,7 +23,7 @@ body:
     attributes:
       label: Documentation Location / 文档位置
       description: Link the page or file that needs attention. / 请填写需要修改的页面、章节或文件路径。
-      placeholder: e.g. README.md or docs/getting-started.md / 例如 README.md 或 docs/getting-started.md
+      placeholder: e.g. README.md / 例如 README.md
     validations:
       required: true
 

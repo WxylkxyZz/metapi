@@ -4,9 +4,7 @@ on:
   push:
     branches: [main, master]
     paths-ignore:
-      - 'docs/**'
       - 'README.md'
-      - 'README_EN.md'
       - 'CONTRIBUTING.md'
       - 'SECURITY.md'
       - 'CODE_OF_CONDUCT.md'
@@ -26,31 +24,6 @@ env:
   ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
 
 jobs:
-  changes:
-    name: Detect Docs Changes
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    outputs:
-      docs: ${{ steps.filter.outputs.docs }}
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-
-      - name: Detect docs-related changes
-        id: filter
-        uses: dorny/paths-filter@v4
-        with:
-          filters: |
-            docs:
-              - 'docs/**'
-              - 'README.md'
-              - 'README_EN.md'
-              - 'CONTRIBUTING.md'
-              - 'SECURITY.md'
-              - 'CODE_OF_CONDUCT.md'
-              - '.github/workflows/docs-pages.yml'
-
   test-core:
     name: Test Core
     runs-on: ubuntu-latest
@@ -213,7 +186,7 @@ jobs:
       mysql:
         image: mysql:8.4
         env:
-          MYSQL_DATABASE: metapi
+          MYSQL_DATABASE: canopy
           MYSQL_ROOT_PASSWORD: root
         ports:
           - 3306:3306
@@ -223,7 +196,7 @@ jobs:
           --health-timeout=5s
           --health-retries=10
     env:
-      DB_PARITY_MYSQL_URL: mysql://root:root@127.0.0.1:3306/metapi
+      DB_PARITY_MYSQL_URL: mysql://root:root@127.0.0.1:3306/canopy
       DB_PARITY_SQLITE: 'false'
 
     steps:
@@ -256,18 +229,18 @@ jobs:
       postgres:
         image: postgres:16
         env:
-          POSTGRES_DB: metapi
+          POSTGRES_DB: canopy
           POSTGRES_PASSWORD: postgres
           POSTGRES_USER: postgres
         ports:
           - 5432:5432
         options: >-
-          --health-cmd="pg_isready -U postgres -d metapi"
+          --health-cmd="pg_isready -U postgres -d canopy"
           --health-interval=10s
           --health-timeout=5s
           --health-retries=10
     env:
-      DB_PARITY_POSTGRES_URL: postgres://postgres:postgres@127.0.0.1:5432/metapi
+      DB_PARITY_POSTGRES_URL: postgres://postgres:postgres@127.0.0.1:5432/canopy
       DB_PARITY_SQLITE: 'false'
 
     steps:
@@ -291,29 +264,6 @@ jobs:
 
       - name: Run postgres runtime schema bootstrap
         run: npm run test:schema:runtime
-
-  docs-build:
-    name: Build Docs
-    if: github.event_name == 'pull_request' && needs.changes.outputs.docs == 'true'
-    needs: changes
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci --prefer-offline --no-audit --no-fund
-
-      - name: Build docs
-        run: npm run docs:build
 
   audit:
     name: Audit Production Dependencies
@@ -354,7 +304,7 @@ jobs:
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 45
     env:
-      DOCKERHUB_IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/metapi
+      DOCKERHUB_IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/canopy
     strategy:
       fail-fast: false
       matrix:
@@ -431,7 +381,7 @@ jobs:
     needs: publish-docker-arch
     timeout-minutes: 15
     env:
-      DOCKERHUB_IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/metapi
+      DOCKERHUB_IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/canopy
 
     steps:
       - name: Checkout

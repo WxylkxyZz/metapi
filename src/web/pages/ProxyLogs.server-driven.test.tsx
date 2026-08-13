@@ -520,7 +520,7 @@ describe('ProxyLogs server-driven page', () => {
       });
       await flushMicrotasks();
 
-      expect(globalThis.localStorage.setItem).toHaveBeenCalledWith('metapi.proxyLogs.debugTracePanelExpanded', 'false');
+      expect(globalThis.localStorage.setItem).toHaveBeenCalledWith('canopy.proxyLogs.debugTracePanelExpanded', 'false');
 
       await act(async () => {
         root.unmount();
@@ -547,7 +547,7 @@ describe('ProxyLogs server-driven page', () => {
         && node.props['data-debug-trace-panel-body'] === true
       ));
 
-      expect(globalThis.localStorage.getItem).toHaveBeenCalledWith('metapi.proxyLogs.debugTracePanelExpanded');
+      expect(globalThis.localStorage.getItem).toHaveBeenCalledWith('canopy.proxyLogs.debugTracePanelExpanded');
       expect(restoredToggleButton.props['aria-expanded']).toBe(false);
       expect(String(restoredPanelBody.props.className || '')).not.toContain('is-open');
     } finally {

@@ -369,9 +369,9 @@ export default function ImportExport() {
       const data = await api.exportBackup(type);
       const date = new Date().toISOString().split('T')[0];
       const fileName: Record<BackupType, string> = {
-        all: `metapi-backup-${date}.json`,
-        accounts: `metapi-accounts-${date}.json`,
-        preferences: `metapi-preferences-${date}.json`,
+        all: `canopy-backup-${date}.json`,
+        accounts: `canopy-accounts-${date}.json`,
+        preferences: `canopy-preferences-${date}.json`,
       };
       downloadJsonFile(data, fileName[type]);
       toast.success('导出成功');
@@ -736,7 +736,7 @@ export default function ImportExport() {
             <input
               value={webdavConfig.fileUrl}
               onChange={(e) => setWebdavConfig((prev) => ({ ...prev, fileUrl: e.target.value }))}
-              placeholder="https://dav.example.com/backups/metapi.json"
+              placeholder="https://dav.example.com/backups/canopy.json"
               style={settingsInputStyle}
             />
           </div>
