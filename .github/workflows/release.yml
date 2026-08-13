@@ -285,7 +285,10 @@ jobs:
 
   publish-docker-arch:
     name: Publish Docker Image (${{ matrix.arch }})
-    needs: build-packages
+    # Docker publication only needs the verified build products, not the desktop
+    # packages. Keeping this independent lets a desktop packaging failure block
+    # the installers without also blocking the image push.
+    needs: verify
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 45
     if: startsWith(github.ref, 'refs/tags/')
