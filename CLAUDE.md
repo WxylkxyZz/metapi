@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-Metapi is a **meta-aggregation layer** for AI API proxy sites. It sits *above* aggregation panels (New API, One API, OneHub, DoneHub, Veloera, AnyRouter, Sub2API) plus direct provider/OAuth upstreams (OpenAI/Claude/Gemini compatible, Codex, Claude, Gemini CLI, Antigravity, cliproxyapi), and exposes them as a single OpenAI- and Claude-compatible endpoint. Downstream clients (Cursor, Claude Code, Codex, etc.) point at one `/v1/*` base URL with one key; Metapi discovers upstream models, routes requests by cost/balance/utilization, fails over, tracks balances, and auto-checks-in.
+Canopy is a **meta-aggregation layer** for AI API proxy sites. It sits *above* aggregation panels (New API, One API, OneHub, DoneHub, Veloera, AnyRouter, Sub2API) plus direct provider/OAuth upstreams (OpenAI/Claude/Gemini compatible, Codex, Claude, Gemini CLI, Antigravity, cliproxyapi), and exposes them as a single OpenAI- and Claude-compatible endpoint. Downstream clients (Cursor, Claude Code, Codex, etc.) point at one `/v1/*` base URL with one key; Canopy discovers upstream models, routes requests by cost/balance/utilization, fails over, tracks balances, and auto-checks-in.
 
 Full-stack TypeScript: Fastify backend + React 18/Vite frontend, packaged as a single Docker container or Electron desktop app.
 

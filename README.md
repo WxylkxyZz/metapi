@@ -1,110 +1,66 @@
 <div align="center">
 
-<img src="docs/logos/logo-full.png" alt="Metapi" width="240">
+# Canopy
 
-# Metapi（私有 fork）
+**AI API 中转站的元聚合层 · One canopy, every upstream**
 
-**个人自用 · AI 中转站元聚合网关**
-
-把多个 AI 中转站（New API / One API / Sub2API 等）聚合为**一个入口、一个 Key**，
-自动发现模型、智能路由、余额跟踪、自动签到。
-
-<p align="center">
-  <a href="README.md"><strong>中文</strong></a> ·
-  <a href="README_EN.md">English</a>
-</p>
+把分散的 New API / One API / OneHub / DoneHub / Veloera / AnyRouter / Sub2API 等聚合面板，以及 OpenAI / Claude / Gemini 等直连或 OAuth 上游，统一收敛为一个 **OpenAI / Claude 兼容的入口**——一个 Key、一个 Base URL，自动发现模型、智能路由、成本优先、故障转移、自动签到。
 
 </div>
 
 ---
 
-## ⚠️ 说明
+## 为什么用 Canopy
 
-这是 **Metapi 的私有二次开发 fork**，仅用于**个人自用**，不对外分发。
+- **一个入口**：下游客户端（Cursor、Claude Code、Codex 等）只需配置一个 `/v1/*` Base URL 和一个 Key。
+- **自动模型发现**：上游新增模型自动出现，规则路由（精确 / 通配 / 正则）自动生成通道。
+- **智能路由**：按成本、余额、利用率、站点健康度综合打分，失败自动冷却与转移，决策全程可审计。
+- **跨格式互转**：Claude 格式下游调 OpenAI 上游（反之亦然），SSE 流式、思考过程标签、工具调用完整透传。
+- **完全自托管**：默认 SQLite 零外部依赖；支持 MySQL / PostgreSQL 运行时切换；单容器部署。
+- **自动签到与余额跟踪**：定时签到、余额刷新、Webhook / Bark / Telegram 多渠道告警。
 
-- 本项目在原 Metapi 基础上持续自行维护，不依赖上游更新。
-- 已移除更新中心（版本轮询 / 部署 / 回退 / 部署日志）子系统，不依赖上游镜像或版本源。
-- 更新与维护由本人负责，在本地改完后自行打包镜像推送。
+## 快速开始
 
----
-
-## 为什么用 Metapi
-
-现在 AI 生态有大量基于 New API / One API 系列的聚合中转站。用 Metapi，
-可以把它们统一成一个入口，下游所有工具（Cursor、Claude Code、Codex 等）
-只需配置一个 `/v1/*` 地址 + 一个 Key。
-
-| 痛点 | Metapi 的解决 |
-| --- | --- |
-| 🔑 每个站点一个 Key，工具配一堆 | **统一代理入口**，模型自动聚合到 `/v1/*` |
-| 💸 不知道哪个站用某模型最便宜 | **智能路由**，按成本 / 余额 / 使用率选最优通道 |
-| 🔄 站点挂了手动切换很麻烦 | **自动故障转移**，失败自动冷却并切换 |
-| 📊 余额分散不知道还剩多少 | **集中看板**，一目了然 |
-| ✅ 每天去各站签到领额度 | **自动签到** 定时执行 |
-| 🤷 不知道哪个站有什么模型 | **自动模型发现**，新增模型零配置出现 |
-
----
-
-## 快速开始（Docker）
+### Docker（推荐）
 
 ```bash
-git clone https://github.com/WxylkxyZz/metapi.git && cd metapi/docker
+# 构建本地镜像（默认使用 docker-compose.override.yml 的本地构建）
+docker compose -f docker/docker-compose.yml -f docker/docker-compose.override.yml up -d --build
 
-# 设置 AUTH_TOKEN（管理后台登录令牌）与 PROXY_TOKEN（下游 /v1/* 令牌）
-cp .env.example .env
-# 编辑 .env 填入你的 AUTH_TOKEN 与 PROXY_TOKEN
-
-docker compose build   # 本地构建镜像（不拉取上游镜像）
-docker compose up -d
+# 首次启动前需要设置令牌：
+#   AUTH_TOKEN   —— 管理后台登录令牌（/api/*）
+#   PROXY_TOKEN  —— 下游访问令牌（/v1/*）
 ```
 
-启动后访问 `http://localhost:4000`，用 `AUTH_TOKEN` 登录即可。
+若宿主机在代理之后，在 `docker/.env` 中设置 `HTTP_PROXY` / `HTTPS_PROXY`
+（只作为构建参数传入，不会烧入镜像）。
 
-> [!IMPORTANT]
-> 请务必修改 `AUTH_TOKEN` 和 `PROXY_TOKEN`，不要使用默认值。数据存储在 `./data` 目录。
-
----
-
-## 本地开发
+### 源码运行
 
 ```bash
 npm install
-npm run db:migrate     # 初始化数据库
-npm run dev            # 前后端热更新（后端 :4000 + 前端 :5173）
+npm run db:migrate
+npm run dev           # 后端 :4000 + 前端 :5173
 ```
 
-```bash
-npm test               # 运行全部测试
-npm run typecheck      # 类型检查（web / server / desktop）
-npm run repo:drift-check  # 架构 / 债务红线检查
-npm run build          # 构建前端 + 后端
-```
+> 需要 Node.js 25+。
 
----
+## 使用要点
+
+1. **站点管理** — 添加 New API / One API / OneHub 等中转站账号（Token 或 Cookie）。
+2. **令牌管理** — 为各账号生成/同步上游令牌；启用/禁用令牌会在库内重建路由（不请求上游）。
+3. **模型路由** — 模型列表自动生成；支持精确 / `*` 通配 / `re:` 正则规则，可手动覆盖通道。
+4. **下游接入** — 把 `/v1` 地址与代理 Key 填进 Cursor / Claude Code / Codex 即可。
+
+## 文档
+
+- 使用与运维说明见仓库 `docs/`（暂未发布在线站点）。
+- 开发与架构说明见 [`CLAUDE.md`](CLAUDE.md)。
 
 ## 技术栈
 
-| 层 | 技术 |
-| --- | --- |
-| 后端 | Fastify（Node.js） |
-| 前端 | React 18 + Vite |
-| 语言 | TypeScript |
-| 样式 | Tailwind CSS v4 |
-| 数据库 | SQLite / MySQL / PostgreSQL + Drizzle ORM |
-| 数据可视化 | VChart |
-| 定时任务 | node-cron |
-| 容器化 | Docker + Docker Compose |
-| 测试 | Vitest |
-
----
-
-## 数据与隐私
-
-完全自托管，所有数据（账号、令牌、路由、日志）均存储在本地数据库中，
-不会向任何第三方发送数据。代理请求仅在你的服务器与上游站点之间直连传输。
-
----
+Fastify · React 18 / Vite · TypeScript · Drizzle ORM（SQLite / MySQL / PostgreSQL）· Electron（桌面版）
 
 ## License
 
-[MIT](LICENSE)
+[MIT](LICENSE) © 2026 WxylkxyZz
