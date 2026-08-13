@@ -2,7 +2,7 @@
   "name": "canopy",
   "version": "1.0.1",
   "description": "Canopy — meta-layer management and unified proxy for AI API aggregation platforms",
-  "main": "dist/desktop/main.js",
+  "main": "dist/server/index.js",
   "keywords": [
     "ai",
     "api-gateway",
@@ -28,23 +28,14 @@
   "scripts": {
     "dev:server": "tsx scripts/dev/run-server.ts --watch",
     "dev": "concurrently \"npm run dev:server\" \"vite\"",
-    "dev:desktop": "concurrently \"npm run dev:server\" \"vite\" \"tsc -p tsconfig.desktop.json --watch --preserveWatchOutput\" \"wait-on tcp:127.0.0.1:4000 http://127.0.0.1:5173 file:dist/desktop/main.js && cross-env METAPI_DESKTOP_DEV_SERVER_URL=http://127.0.0.1:5173 METAPI_DESKTOP_EXTERNAL_SERVER_URL=http://127.0.0.1:4000 electron dist/desktop/main.js\"",
-    "desktop:icons": "node scripts/desktop/generate-icons.mjs",
-    "build:web": "npm run desktop:icons && vite build",
+    "build:web": "vite build",
     "build:server": "tsc -p tsconfig.server.json && tsx scripts/dev/copy-runtime-db-generated.ts",
-    "build:desktop": "tsc -p tsconfig.desktop.json",
-    "build": "npm run build:web && npm run build:server && npm run build:desktop",
+    "build": "npm run build:web && npm run build:server",
     "typecheck:web": "tsc -p tsconfig.web.json",
     "typecheck:web:test": "tsc -p tsconfig.web.test.json",
     "typecheck:server": "tsc --noEmit -p tsconfig.server.json",
-    "typecheck:desktop": "tsc --noEmit -p tsconfig.desktop.json",
-    "typecheck": "npm run typecheck:web && npm run typecheck:web:test && npm run typecheck:server && npm run typecheck:desktop",
-    "dist:desktop": "npm run build && electron-builder --config electron-builder.yml --publish never",
-    "dist:desktop:mac:intel": "npm run build && electron-builder --config electron-builder.yml --publish never --mac --x64",
-    "package:desktop": "npm run dist:desktop",
-    "package:desktop:mac:intel": "npm run dist:desktop:mac:intel",
+    "typecheck": "npm run typecheck:web && npm run typecheck:web:test && npm run typecheck:server",
     "start": "node dist/server/index.js",
-    "start:desktop": "electron dist/desktop/main.js",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/server/db/migrate.ts",
     "schema:contract": "tsx scripts/dev/generate-schema-contract.ts",
@@ -73,8 +64,6 @@
     "brace-expansion": "^5.0.9",
     "dotenv": "^17.4.2",
     "drizzle-orm": "^0.45.2",
-    "electron-log": "^5.4.4",
-    "electron-updater": "6.8.9",
     "fast-uri": "^4.1.2",
     "fastify": "^5.11.3",
     "get-port": "^7.2.0",
@@ -93,7 +82,6 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@electron/notarize": "^3.1.0",
     "@tailwindcss/vite": "^4.3.0",
     "@types/better-sqlite3": "^7.6.11",
     "@types/node": "^22.10.1",
@@ -104,29 +92,21 @@
     "@types/react-test-renderer": "^19.1.0",
     "@vitejs/plugin-react": "^4.3.4",
     "concurrently": "^9.1.0",
-    "cross-env": "^7.0.3",
     "drizzle-kit": "^0.31.10",
-    "electron": "^42.0.1",
-    "electron-builder": "^26.0.12",
     "jsdom": "^29.1.1",
     "mermaid": "^11.15.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^7.15.0",
     "react-test-renderer": "^18.3.1",
-    "sharp": "^0.34.5",
     "tailwindcss": "^4.0.0",
     "tsx": "^4.19.2",
     "typescript": "^6.0.3",
     "vite": "^6.4.2",
-    "vitest": "^2.1.8",
-    "wait-on": "^9.0.10"
+    "vitest": "^2.1.8"
   },
   "overrides": {
-    "minimist": "^1.2.8",
-    "@electron/rebuild": {
-      "node-abi": "^4.33.0"
-    }
+    "minimist": "^1.2.8"
   },
   "author": {
     "name": "WxylkxyZz",

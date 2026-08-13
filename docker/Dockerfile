@@ -13,7 +13,7 @@ ENV PYTHON=/usr/bin/python3
 
 COPY package.json package-lock.json ./
 RUN npm ci --ignore-scripts --no-audit --no-fund
-RUN npm rebuild esbuild sharp better-sqlite3 --no-audit --no-fund
+RUN npm rebuild esbuild better-sqlite3 --no-audit --no-fund
 
 COPY . .
 RUN npm run build:web && npm run build:server

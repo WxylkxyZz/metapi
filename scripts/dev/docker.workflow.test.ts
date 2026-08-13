@@ -5,7 +5,7 @@ import { resolve } from 'node:path';
 describe('docker workflows', () => {
   it('publishes amd64 and arm64 docker images in ci and release workflows (no armv7)', () => {
     const ciWorkflow = readFileSync(resolve(process.cwd(), '.github/workflows/ci.yml'), 'utf8');
-    const releaseWorkflow = readFileSync(resolve(process.cwd(), '.github/workflows/release.yml'), 'utf8');
+    const releaseWorkflow = readFileSync(resolve(process.cwd(), '.github/workflows/docker-publish.yml'), 'utf8');
 
     expect(ciWorkflow).toContain('arch: amd64');
     expect(ciWorkflow).toContain('arch: arm64');
@@ -22,7 +22,7 @@ describe('docker workflows', () => {
 
   it('derives Docker Hub image names from the configured username secret', () => {
     const ciWorkflow = readFileSync(resolve(process.cwd(), '.github/workflows/ci.yml'), 'utf8');
-    const releaseWorkflow = readFileSync(resolve(process.cwd(), '.github/workflows/release.yml'), 'utf8');
+    const releaseWorkflow = readFileSync(resolve(process.cwd(), '.github/workflows/docker-publish.yml'), 'utf8');
 
     expect(ciWorkflow).toContain('DOCKERHUB_IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/canopy');
     expect(ciWorkflow).not.toContain('images: 1467078763/canopy');
@@ -49,7 +49,8 @@ describe('docker workflows', () => {
     const dockerfile = readFileSync(resolve(process.cwd(), 'docker/Dockerfile'), 'utf8');
 
     expect(dockerfile).toContain('npm ci --ignore-scripts --no-audit --no-fund');
-    expect(dockerfile).toContain('npm rebuild esbuild sharp better-sqlite3 --no-audit --no-fund');
+    expect(dockerfile).toContain('npm rebuild esbuild better-sqlite3 --no-audit --no-fund');
+    expect(dockerfile).not.toContain('sharp');
     expect(dockerfile).not.toContain('npm ci --no-audit --no-fund');
     expect(dockerfile).toContain('RUN npm run build:web && npm run build:server');
     expect(dockerfile).toContain('npm prune --omit=dev --no-audit --no-fund');

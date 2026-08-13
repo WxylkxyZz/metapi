@@ -58,7 +58,7 @@ import {
 import { reloadBackupWebdavScheduler } from './services/backupService.js';
 import { ensureRuntimeDatabaseReady } from './runtimeDatabaseBootstrap.js';
 import { ensureAccountCredentialSecret, isUsingFallbackCredentialSecret } from './services/accountCredentialSecretService.js';
-import { isPublicApiRoute, registerDesktopRoutes } from './desktop.js';
+import { isPublicApiRoute } from './publicRoutes.js';
 import { existsSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, normalize, resolve, sep } from 'path';
@@ -230,7 +230,6 @@ app.addHook('onRequest', async (request, reply) => {
 });
 
 // Register API routes
-await app.register(registerDesktopRoutes);
 await app.register(sitesRoutes);
 await app.register(accountsRoutes);
 await app.register(checkinRoutes);

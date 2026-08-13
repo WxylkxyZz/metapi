@@ -55,12 +55,11 @@ npm run dev           # 后端 :4000 + 前端 :5173
 ## 文档
 
 - [部署与配置（环境变量完整清单 + VPS 部署）](docs/DEPLOYMENT.md)
-- [发布说明（Releases 与 Docker 镜像）](docs/RELEASES.md)
 - 开发与架构说明见 [`CLAUDE.md`](CLAUDE.md)。
 
 ## 技术栈
 
-Fastify · React 18 / Vite · TypeScript · Drizzle ORM（SQLite / MySQL / PostgreSQL）· Electron（桌面版）
+Fastify · React 18 / Vite · TypeScript · Drizzle ORM（SQLite / MySQL / PostgreSQL）· Docker
 
 ## License
 

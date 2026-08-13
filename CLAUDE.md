@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Canopy is a **meta-aggregation layer** for AI API proxy sites. It sits *above* aggregation panels (New API, One API, OneHub, DoneHub, Veloera, AnyRouter, Sub2API) plus direct provider/OAuth upstreams (OpenAI/Claude/Gemini compatible, Codex, Claude, Gemini CLI, Antigravity, cliproxyapi), and exposes them as a single OpenAI- and Claude-compatible endpoint. Downstream clients (Cursor, Claude Code, Codex, etc.) point at one `/v1/*` base URL with one key; Canopy discovers upstream models, routes requests by cost/balance/utilization, fails over, tracks balances, and auto-checks-in.
 
-Full-stack TypeScript: Fastify backend + React 18/Vite frontend, packaged as a single Docker container or Electron desktop app.
+Full-stack TypeScript: Fastify backend + React 18/Vite frontend, shipped as a single Docker container.
 
 ## Commands
 
@@ -16,8 +16,8 @@ npm run dev:server       # backend only
 npm run db:migrate       # apply SQLite migrations — run before first dev boot
 npm test                 # full vitest run (this is what CI runs)
 npm run test:watch       # vitest watch mode
-npm run typecheck        # typecheck all 4 tsconfig projects (web, web:test, server, desktop)
-npm run build            # build web + server + desktop
+npm run typecheck        # typecheck web, web tests, and server
+npm run build            # build web + server
 ```
 
 Run a single test file or pattern:
@@ -39,7 +39,7 @@ Node **25+** is required (`package.json` engines); the README/CONTRIBUTING menti
 
 Everything hinges on this split (`src/server/index.ts`, `src/server/middleware/auth.ts`):
 
-- **`/api/*`** — admin/management API, guarded by `authMiddleware` (the `AUTH_TOKEN`). Serves the React dashboard. `isPublicApiRoute` in `desktop.ts` exempts a few routes.
+- **`/api/*`** — admin/management API, guarded by `authMiddleware` (the `AUTH_TOKEN`). Serves the React dashboard. `isPublicApiRoute` in `publicRoutes.ts` exempts OAuth callback routes.
 - **`/v1/*`** — the downstream proxy surface, guarded by `proxyAuthMiddleware`. Accepts either the global `PROXY_TOKEN` or a per-project **managed downstream API key** (`downstreamApiKeyService`), which carries its own `DownstreamRoutingPolicy` restricting which upstreams/models it can reach.
 
 When adding a route, register it in `index.ts` under the correct plane. `/v1/*` and `/api/*` are excluded from the SPA fallback.

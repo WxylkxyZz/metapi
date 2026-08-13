@@ -169,7 +169,40 @@ SQLite 数据文件就在 `DATA_DIR` 里；MySQL / Postgres 为运行时切换�
 
 ---
 
-## 三、Docker 部署（推荐）
+## 四、Docker 镜像发布
+
+### GitHub Actions 发布条件
+
+Docker 镜像发布不再创建 GitHub Release，也不生成桌面安装包。仓库只发布 Docker 镜像：
+
+- 推送 `main`：只有仓库变量 `DOCKER_PUBLISH_ENABLED=true` 时才发布 `latest` 和提交 SHA 镜像。
+- 推送 `v*` tag：由 Docker Publish 工作流构建并发布 Docker Hub 与 GHCR 的 `amd64`/`arm64` 多架构镜像，同时更新对应 tag 和 `latest`。
+
+在 GitHub 仓库的 **Settings → Secrets and variables → Actions** 中配置：
+
+| 类型 | 名称 | 用途 |
+| --- | --- | --- |
+| Secret | `DOCKERHUB_USERNAME` | Docker Hub 用户名 |
+| Secret | `DOCKERHUB_TOKEN` | Docker Hub Read & Write 访问令牌 |
+| Variable | `DOCKER_PUBLISH_ENABLED` | 设为 `true` 才启用 main push 发布 |
+
+创建正式镜像 tag：
+
+```bash
+git tag v1.0.2
+git push origin v1.0.2
+```
+
+拉取镜像：
+
+```bash
+docker pull <dockerhub_username>/canopy:v1.0.2
+docker pull <dockerhub_username>/canopy:latest
+docker pull ghcr.io/WxylkxyZz/Canopy:v1.0.2
+docker pull ghcr.io/WxylkxyZz/Canopy:latest
+```
+
+## 五、Docker 部署（推荐）
 
 ### 使用 compose（已提供现成文件）
 
@@ -232,7 +265,7 @@ npm run dev              # 后端 :4000 + 前端 :5173
 
 ---
 
-## 四、VPS 部署逐步指南
+## 六、VPS 部署逐步指南
 
 ### 1. 环境准备（Debian / Ubuntu）
 
@@ -309,7 +342,7 @@ sudo docker compose -f docker/docker-compose.yml -f docker/docker-compose.overri
 
 ---
 
-## 五、安全检查清单（上线前）
+## 七、安全检查清单（上线前）
 
 - [ ] `AUTH_TOKEN`、`PROXY_TOKEN` 已改强随机值。
 - [ ] `ACCOUNT_CREDENTIAL_SECRET` 已显式设置（或已确认首次启动日志中的警告可接受）。
