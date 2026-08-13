@@ -123,7 +123,10 @@
     "wait-on": "^9.0.10"
   },
   "overrides": {
-    "minimist": "^1.2.8"
+    "minimist": "^1.2.8",
+    "@electron/rebuild": {
+      "node-abi": "^4.33.0"
+    }
   },
   "author": {
     "name": "WxylkxyZz",
