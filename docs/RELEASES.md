@@ -92,7 +92,13 @@ Release 页应包含桌面安装包（`.exe` / `.dmg` / `.AppImage` 等）资产
 Could not detect abi for version 42.0.1 and runtime electron.
 ```
 **原因**：`electron-builder` 的 `@electron/rebuild` 依赖的 `node-abi` 版本不认识当前 electron 的 ABI（它内置到 `node-abi@4.26.0`，仅支持 Electron ≤ 40，而项目用 Electron 42）。这是依赖版本落后导致的构建失败。
-**处理**：检查/升级 `node-abi`（或升级 electron-builder / @electron/rebuild）后重新打 tag 触发 release。此问题只影响**桌面安装包**的生成；若你不发桌面包，可暂时只使用 Docker 发布而跳过桌面构建。
+**处理**：已在 `package.json` 通过 npm overrides 将 `@electron/rebuild` 的 `node-abi` 提升到 `^4.33.0`（支持 Electron 42，ABI 146）：
+  ```json
+  "overrides": {
+    "@electron/rebuild": { "node-abi": "^4.33.0" }
+  }
+  ```
+  已合入 `main`（968dc40）。重新 push 一个 tag 即可触发修复后的 release。
 
 ### Q2：我想要"只发 Docker，不发桌面包"
 需要改 `release.yml`：让 `publish-docker-arch`/`publish-docker` 不再 `needs: build-packages`（改为直接依赖 `verify`），这样 Docker 发布不被桌面包构建阻塞。改动后重新打 tag 即可。
