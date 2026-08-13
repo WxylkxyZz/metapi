@@ -54,7 +54,8 @@ npm run dev           # 后端 :4000 + 前端 :5173
 
 ## 文档
 
-- 使用与运维说明见仓库 `docs/`（暂未发布在线站点）。
+- [部署与配置（环境变量完整清单 + VPS 部署）](docs/DEPLOYMENT.md)
+- [发布说明（Releases 与 Docker 镜像）](docs/RELEASES.md)
 - 开发与架构说明见 [`CLAUDE.md`](CLAUDE.md)。
 
 ## 技术栈
