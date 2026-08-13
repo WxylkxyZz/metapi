@@ -11,11 +11,18 @@ tmp/*
 !tmp/.gitkeep
 .worktrees/
 
-# Local desktop/debug artifacts
-/.tmp-*
-/main.js
-/NUL
-/.playwright-cli/
+# Temporary test results
+/.tmp-test-results.json
+
+.DS_Store
+Thumbs.db
+docker/data/
+docker/.env
+
+# Local planning docs
+docs/plan/
+docs/plans/
+.ace-tool/
 
 .DS_Store
 Thumbs.db
