@@ -72,6 +72,8 @@ gh secret list            # 确认 DOCKERHUB_USERNAME / DOCKERHUB_TOKEN 已配�
 
 ### 3. 打 tag 并推送
 
+桌面 Release 包的版本取自 `package.json`，所以先确保 `package.json` / `package-lock.json` 的 `version` 已是目标版本（例如要把 `v1.1.0` 的桌面包发布成 1.1.0，就先 bump 到 1.1.0 并提交推送）；然后打 tag：
+
 ```bash
 git tag v1.1.0
 git push origin v1.1.0
