@@ -35,7 +35,20 @@ describe('Sub2ApiAdapter', () => {
 
   it('detects sub2api from URL', async () => {
     expect(await adapter.detect('https://sub2api.example.com')).toBe(true);
-    expect(await adapter.detect('https://example.com')).toBe(false);
+  });
+
+  it('does not mis-detect a generic non-sub2api site', async () => {
+    await startServer((req, res) => {
+      if (req.url === '/api/v1/auth/me' || req.url === '/v1/models') {
+        res.writeHead(404, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'not-found' }));
+        return;
+      }
+      res.writeHead(200, { 'Content-Type': 'text/html' });
+      res.end('<html><head><title>Generic Site</title></head><body></body></html>');
+    });
+
+    expect(await adapter.detect(baseUrl)).toBe(false);
   });
 
   it('detects sub2api by auth/me unauthorized envelope even without sub2api domain', async () => {
