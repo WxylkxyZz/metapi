@@ -9,8 +9,10 @@ import {
   isMaskedTokenValue,
   isUsableAccountToken,
   listTokensWithRelations,
+  normalizeMaskedTokenForCompare,
   normalizeTokenForDisplay,
   maskToken,
+  matchesMaskedTokenValue,
   repairDefaultToken,
   resolveAccountTokenValueStatus,
   setDefaultToken,
@@ -512,25 +514,77 @@ export async function accountTokensRoutes(app: FastifyInstance) {
       const isDefault = valueStatus === ACCOUNT_TOKEN_VALUE_STATUS_READY
         ? (body.isDefault ?? false)
         : false;
+      const compareValue = valueStatus === ACCOUNT_TOKEN_VALUE_STATUS_MASKED_PENDING
+        ? normalizeMaskedTokenForCompare(tokenValue)
+        : tokenValue;
 
-      let created = await insertAndGetById<typeof schema.accountTokens.$inferSelect>({
-        table: schema.accountTokens,
-        idColumn: schema.accountTokens.id,
-        values: {
-          accountId: body.accountId,
-          name: (body.name || '').trim() || (existing.length === 0 ? 'default' : `token-${existing.length + 1}`),
-          token: tokenValue,
-          tokenGroup: (body.group || '').trim() || null,
-          valueStatus,
-          source: body.source || 'manual',
-          enabled,
-          isDefault,
-          createdAt: now,
-          updatedAt: now,
-        },
-        insertErrorMessage: '创建令牌失败',
-        loadErrorMessage: '创建令牌失败',
-      });
+      // 创建前先去重：按明文值或归一化掩码查找已有令牌。若命中原有行则覆盖更新
+      // （名称/分组/值/启用/默认以本次提交为准），而不是再插入一条重复记录。
+      const duplicate = existing.find((token) => (
+        token.token === tokenValue
+        || (valueStatus === ACCOUNT_TOKEN_VALUE_STATUS_MASKED_PENDING && (
+          (isMaskedTokenValue(token.token) && normalizeMaskedTokenForCompare(token.token) === compareValue)
+          || (resolveAccountTokenValueStatus(token) === ACCOUNT_TOKEN_VALUE_STATUS_READY
+            && matchesMaskedTokenValue(token.token, tokenValue))
+        ))
+      ));
+
+      if (duplicate && valueStatus === ACCOUNT_TOKEN_VALUE_STATUS_MASKED_PENDING
+        && resolveAccountTokenValueStatus(duplicate) === ACCOUNT_TOKEN_VALUE_STATUS_READY) {
+        return reply.code(409).send({
+          success: false,
+          message: '该令牌已存在明文记录，无法用脱敏值覆盖；请在更新令牌处直接修改，或先删除该令牌再创建。',
+        });
+      }
+
+      const mergedName = (body.name || '').trim() || (duplicate ? duplicate.name : '') || (existing.length === 0 ? 'default' : `token-${existing.length + 1}`);
+      const mergedTokenGroup = (body.group || '').trim() || (duplicate ? duplicate.tokenGroup ?? null : null) || null;
+      const mergedSource = body.source || duplicate?.source || 'manual';
+      const mergedEnabled = valueStatus === ACCOUNT_TOKEN_VALUE_STATUS_READY
+        ? (body.enabled ?? duplicate?.enabled ?? true)
+        : false;
+      const mergedIsDefault = valueStatus === ACCOUNT_TOKEN_VALUE_STATUS_READY
+        ? (body.isDefault ?? duplicate?.isDefault ?? false)
+        : false;
+
+      let created: typeof schema.accountTokens.$inferSelect;
+      let action: 'created' | 'reused' = 'created';
+      if (duplicate) {
+        await db.update(schema.accountTokens)
+          .set({
+            name: mergedName,
+            token: tokenValue,
+            tokenGroup: mergedTokenGroup,
+            valueStatus,
+            source: mergedSource,
+            enabled: mergedEnabled,
+            isDefault: mergedIsDefault,
+            updatedAt: now,
+          })
+          .where(eq(schema.accountTokens.id, duplicate.id))
+          .run();
+        created = (await db.select().from(schema.accountTokens).where(eq(schema.accountTokens.id, duplicate.id)).get())!;
+        action = 'reused';
+      } else {
+        created = await insertAndGetById<typeof schema.accountTokens.$inferSelect>({
+          table: schema.accountTokens,
+          idColumn: schema.accountTokens.id,
+          values: {
+            accountId: body.accountId,
+            name: mergedName,
+            token: tokenValue,
+            tokenGroup: mergedTokenGroup,
+            valueStatus,
+            source: mergedSource,
+            enabled: mergedEnabled,
+            isDefault: mergedIsDefault,
+            createdAt: now,
+            updatedAt: now,
+          },
+          insertErrorMessage: '创建令牌失败',
+          loadErrorMessage: '创建令牌失败',
+        });
+      }
 
       if (valueStatus === ACCOUNT_TOKEN_VALUE_STATUS_READY && (body.isDefault || (existing.length === 0 && enabled))) {
         await setDefaultToken(created.id);
@@ -538,11 +592,11 @@ export async function accountTokensRoutes(app: FastifyInstance) {
         await setDefaultToken(created.id);
       }
       const coverageRefresh = await refreshCoverageForAccounts([body.accountId]);
-      created = await db.select().from(schema.accountTokens).where(eq(schema.accountTokens.id, created.id)).get();
+      created = (await db.select().from(schema.accountTokens).where(eq(schema.accountTokens.id, created.id)).get())!;
       if (!created) {
         return reply.code(500).send({ success: false, message: '创建令牌失败' });
       }
-      return { success: true, token: created, coverageRefresh };
+      return { success: true, action, token: created, coverageRefresh };
     }
 
     const account = row.accounts;

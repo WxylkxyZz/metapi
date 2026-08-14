@@ -61,11 +61,11 @@ export function isMaskedTokenValue(token: string | null | undefined): boolean {
   return value.includes('*') || value.includes('•');
 }
 
-function normalizeMaskedTokenForCompare(token: string | null | undefined): string {
+export function normalizeMaskedTokenForCompare(token: string | null | undefined): string {
   return normalizeTokenForDisplay(token).replace(/•/g, '*');
 }
 
-function matchesMaskedTokenValue(
+export function matchesMaskedTokenValue(
   fullToken: string | null | undefined,
   maskedToken: string | null | undefined,
 ): boolean {
@@ -306,6 +306,21 @@ export async function syncTokensFromUpstream(accountId: number, upstreamTokens: 
   const pendingTokenIds: number[] = [];
   let index = existing.length + 1;
 
+  // Remove duplicated local rows for the same logical token: keep the first
+  // surviving row, drop the rest (only the surviving row is updated below).
+  const removeOtherDuplicates = async (kept: typeof existing[number], duplicates: typeof existing[number][]) => {
+    for (const row of duplicates) {
+      if (row.id === kept.id || upToDateRows.has(row.id)) continue;
+      await db.delete(schema.accountTokens)
+        .where(eq(schema.accountTokens.id, row.id))
+        .run();
+      const index = existing.findIndex((item) => item.id === row.id);
+      if (index >= 0) existing.splice(index, 1);
+    }
+  };
+
+  const upToDateRows = new Set<number>();
+
   for (const upstream of upstreamTokens) {
     const tokenValue = normalizeTokenValue(upstream.key);
     if (!tokenValue) continue;
@@ -315,30 +330,87 @@ export async function syncTokensFromUpstream(accountId: number, upstreamTokens: 
     const nextValueStatus = isMaskedTokenValue(tokenValue)
       ? ACCOUNT_TOKEN_VALUE_STATUS_MASKED_PENDING
       : ACCOUNT_TOKEN_VALUE_STATUS_READY;
+    const compareValue = nextValueStatus === ACCOUNT_TOKEN_VALUE_STATUS_MASKED_PENDING
+      ? normalizeMaskedTokenForCompare(tokenValue)
+      : tokenValue;
 
+    // 1) Exact match by value: a local row holding the same token (masked or not)
+    //    is the same logical token. Overwrite it instead of appending a duplicate.
     const byToken = existing.find((row) => (
       row.token === tokenValue
-      && resolveAccountTokenValueStatus(row) === ACCOUNT_TOKEN_VALUE_STATUS_READY
+      || (nextValueStatus === ACCOUNT_TOKEN_VALUE_STATUS_MASKED_PENDING
+        && isMaskedTokenValue(row.token)
+        && normalizeMaskedTokenForCompare(row.token) === compareValue)
     ));
     if (byToken) {
-      await db.update(schema.accountTokens)
-        .set({
-          name: tokenName,
-          tokenGroup,
-          valueStatus: ACCOUNT_TOKEN_VALUE_STATUS_READY,
-          source: 'sync',
-          enabled,
-          updatedAt: now,
-        })
-        .where(eq(schema.accountTokens.id, byToken.id))
-        .run();
-      byToken.name = tokenName;
-      byToken.tokenGroup = tokenGroup;
-      byToken.valueStatus = ACCOUNT_TOKEN_VALUE_STATUS_READY;
-      byToken.enabled = enabled;
-      byToken.source = 'sync';
-      byToken.updatedAt = now;
+      // 上游返回掩码且本地存在唯一 READY 明文行（同名同组、掩码可匹配）时以明文行为准：
+      // 保留明文（不降级），删除所有匹配的掩码占位（含 byToken 命中的占位）。
+      const readyPicks = nextValueStatus === ACCOUNT_TOKEN_VALUE_STATUS_MASKED_PENDING
+        ? existing.filter((row) => (
+          resolveAccountTokenValueStatus(row) === ACCOUNT_TOKEN_VALUE_STATUS_READY
+          && row.name === tokenName
+          && sameTokenGroup(row.tokenGroup, row.name, tokenGroup, tokenName)
+          && matchesMaskedTokenValue(row.token, tokenValue)
+        ))
+        : [];
+      const upgradeToReady = readyPicks.length === 1;
+      const keptRow = upgradeToReady ? readyPicks[0] : byToken;
+
+      const duplicates = existing.filter((row) => (
+        row.id !== keptRow.id
+        && (row.token === tokenValue
+          || (nextValueStatus === ACCOUNT_TOKEN_VALUE_STATUS_MASKED_PENDING && (
+            (isMaskedTokenValue(row.token) && normalizeMaskedTokenForCompare(row.token) === compareValue)
+            || (upgradeToReady
+              && resolveAccountTokenValueStatus(row) === ACCOUNT_TOKEN_VALUE_STATUS_MASKED_PENDING
+              && matchesMaskedTokenValue(row.token, tokenValue)
+              && row.name === tokenName
+              && sameTokenGroup(row.tokenGroup, row.name, tokenGroup, tokenName))
+          )))
+      ));
+
+      if (upgradeToReady) {
+        // READY 明文行：只同步名称/分组/来源/启用，token 与 valueStatus 保持 READY 明文
+        await db.update(schema.accountTokens)
+          .set({ name: tokenName, tokenGroup, source: 'sync', enabled, updatedAt: now })
+          .where(eq(schema.accountTokens.id, keptRow.id))
+          .run();
+        keptRow.name = tokenName;
+        keptRow.tokenGroup = tokenGroup;
+        keptRow.source = 'sync';
+        keptRow.enabled = enabled;
+        keptRow.updatedAt = now;
+      } else {
+        const nextEnabled = nextValueStatus === ACCOUNT_TOKEN_VALUE_STATUS_READY ? enabled : false;
+        await db.update(schema.accountTokens)
+          .set({
+            name: tokenName,
+            tokenGroup,
+            valueStatus: nextValueStatus,
+            token: tokenValue,
+            source: 'sync',
+            enabled: nextEnabled,
+            isDefault: false,
+            updatedAt: now,
+          })
+          .where(eq(schema.accountTokens.id, keptRow.id))
+          .run();
+        keptRow.name = tokenName;
+        keptRow.tokenGroup = tokenGroup;
+        keptRow.valueStatus = nextValueStatus;
+        keptRow.token = tokenValue;
+        keptRow.source = 'sync';
+        keptRow.enabled = nextEnabled;
+        keptRow.isDefault = false;
+        keptRow.updatedAt = now;
+      }
+      upToDateRows.add(keptRow.id);
+      await removeOtherDuplicates(keptRow, duplicates);
       updated++;
+      if (nextValueStatus === ACCOUNT_TOKEN_VALUE_STATUS_MASKED_PENDING && !upgradeToReady) {
+        maskedPending++;
+        pendingTokenIds.push(keptRow.id);
+      }
       continue;
     }
 
@@ -353,6 +425,13 @@ export async function syncTokensFromUpstream(accountId: number, upstreamTokens: 
     const readyMaskedMatch = matchingReadyByMaskedValue.length === 1
       ? matchingReadyByMaskedValue[0]
       : null;
+
+    const matchingPlaceholder = existing.find((row) => (
+      isMaskedPendingAccountToken(row)
+      && row.name === tokenName
+      && sameTokenGroup(row.tokenGroup, row.name, tokenGroup, tokenName)
+    ));
+
     if (readyMaskedMatch) {
       const staleMaskedPlaceholders = existing.filter((row) => (
         row.id !== readyMaskedMatch.id
@@ -379,30 +458,13 @@ export async function syncTokensFromUpstream(accountId: number, upstreamTokens: 
       readyMaskedMatch.enabled = enabled;
       readyMaskedMatch.source = 'sync';
       readyMaskedMatch.updatedAt = now;
+      upToDateRows.add(readyMaskedMatch.id);
 
-      if (staleMaskedPlaceholders.length > 0) {
-        for (const placeholder of staleMaskedPlaceholders) {
-          await db.delete(schema.accountTokens)
-            .where(eq(schema.accountTokens.id, placeholder.id))
-            .run();
-        }
-        for (const placeholder of staleMaskedPlaceholders) {
-          const placeholderIndex = existing.findIndex((row) => row.id === placeholder.id);
-          if (placeholderIndex >= 0) {
-            existing.splice(placeholderIndex, 1);
-          }
-        }
-      }
+      await removeOtherDuplicates(readyMaskedMatch, staleMaskedPlaceholders);
 
       updated++;
       continue;
     }
-
-    const matchingPlaceholder = existing.find((row) => (
-      isMaskedPendingAccountToken(row)
-      && row.name === tokenName
-      && sameTokenGroup(row.tokenGroup, row.name, tokenGroup, tokenName)
-    ));
 
     if (matchingPlaceholder) {
       const nextEnabled = nextValueStatus === ACCOUNT_TOKEN_VALUE_STATUS_READY ? enabled : false;

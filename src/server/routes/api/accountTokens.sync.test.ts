@@ -62,6 +62,7 @@ describe('account tokens sync routes with site status', () => {
   };
 
   beforeAll(async () => {
+    // 数据库迁移 + app 注册在冷启动时可能超过 vitest 默认 10s 的 hook 超时
     previousDataDir = process.env.DATA_DIR;
     dataDir = mkdtempSync(join(tmpdir(), 'metapi-account-tokens-sync-'));
     vi.resetModules();
@@ -78,7 +79,7 @@ describe('account tokens sync routes with site status', () => {
 
     app = Fastify();
     await app.register(routesModule.accountTokensRoutes);
-  });
+  }, 30_000);
 
   beforeEach(async () => {
     getApiTokensMock.mockReset();
@@ -402,6 +403,117 @@ describe('account tokens sync routes with site status', () => {
     expect((maskedRow as any)?.valueStatus).toBe('masked_pending');
   });
 
+  it('overwrites an existing placeholder when upstream returns the same masked token with a different name', async () => {
+    const { account } = await seedAccount({ siteStatus: 'active' });
+    await db.insert(schema.accountTokens).values({
+      accountId: account.id,
+      name: 'masked-old-name',
+      token: 'sk-abc***xyz',
+      source: 'sync',
+      enabled: false,
+      isDefault: false,
+      tokenGroup: 'default',
+      valueStatus: 'masked_pending' as any,
+    }).run();
+
+    getApiTokensMock.mockResolvedValue([
+      { name: 'masked-new-name', key: 'sk-abc***xyz', enabled: true, tokenGroup: 'default' },
+    ]);
+    getApiTokenMock.mockResolvedValue(null);
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/api/account-tokens/sync/${account.id}`,
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      success: true,
+      synced: true,
+      status: 'synced',
+      total: 1,
+      created: 0,
+      updated: 1,
+      maskedPending: 1,
+    });
+
+    const tokenRows = await db.select()
+      .from(schema.accountTokens)
+      .where(eq(schema.accountTokens.accountId, account.id))
+      .all();
+    expect(tokenRows).toHaveLength(1);
+    expect(tokenRows[0]).toMatchObject({
+      name: 'masked-new-name',
+      token: 'sk-abc***xyz',
+      source: 'sync',
+      enabled: false,
+      isDefault: false,
+      tokenGroup: 'default',
+    });
+    expect((tokenRows[0] as any).valueStatus).toBe('masked_pending');
+  });
+
+  it('merges duplicated local rows for the same masked token into one row', async () => {
+    const { account } = await seedAccount({ siteStatus: 'active' });
+    const maskedToken = 'sk-abc***xyz';
+    await db.insert(schema.accountTokens).values({
+      accountId: account.id,
+      name: 'dupe-token',
+      token: maskedToken,
+      source: 'sync',
+      enabled: false,
+      isDefault: false,
+      tokenGroup: 'default',
+      valueStatus: 'masked_pending' as any,
+    }).run();
+    await db.insert(schema.accountTokens).values({
+      accountId: account.id,
+      name: 'dupe-token',
+      token: maskedToken,
+      source: 'sync',
+      enabled: false,
+      isDefault: false,
+      tokenGroup: 'default',
+      valueStatus: 'masked_pending' as any,
+    }).run();
+
+    getApiTokensMock.mockResolvedValue([
+      { name: 'dupe-token', key: maskedToken, enabled: true, tokenGroup: 'default' },
+    ]);
+    getApiTokenMock.mockResolvedValue(null);
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/api/account-tokens/sync/${account.id}`,
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      success: true,
+      synced: true,
+      status: 'synced',
+      total: 1,
+      created: 0,
+      updated: 1,
+      maskedPending: 1,
+    });
+
+    const tokenRows = await db.select()
+      .from(schema.accountTokens)
+      .where(eq(schema.accountTokens.accountId, account.id))
+      .all();
+    expect(tokenRows).toHaveLength(1);
+    expect(tokenRows[0]).toMatchObject({
+      name: 'dupe-token',
+      token: maskedToken,
+      source: 'sync',
+      enabled: false,
+      isDefault: false,
+      tokenGroup: 'default',
+    });
+    expect((tokenRows[0] as any).valueStatus).toBe('masked_pending');
+  });
+
   it('keeps fully ambiguous short masks as masked_pending instead of reusing a ready token', async () => {
     const { account } = await seedAccount({ siteStatus: 'active' });
     const fullToken = 'sk-abcd';
@@ -599,6 +711,89 @@ describe('account tokens sync routes with site status', () => {
       success: false,
       message: 'Invalid wait. Expected boolean.',
     });
+  });
+
+  it('overwrites the existing manual token instead of creating a duplicate when the same value is submitted', async () => {
+    const { account } = await seedAccount({ siteStatus: 'active' });
+    const first = await db.insert(schema.accountTokens).values({
+      accountId: account.id,
+      name: 'first-name',
+      token: 'sk-same-token',
+      source: 'manual',
+      enabled: true,
+      isDefault: true,
+      tokenGroup: 'default',
+      valueStatus: 'ready' as any,
+    }).returning().get();
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/account-tokens',
+      payload: {
+        accountId: account.id,
+        name: 'second-name',
+        token: 'sk-same-token',
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      success: true,
+      action: 'reused',
+      token: expect.objectContaining({
+        id: first.id,
+        name: 'second-name',
+        token: 'sk-same-token',
+        isDefault: true,
+        enabled: true,
+      }),
+    });
+
+    const tokenRows = await db.select()
+      .from(schema.accountTokens)
+      .where(eq(schema.accountTokens.accountId, account.id))
+      .all();
+    expect(tokenRows).toHaveLength(1);
+    expect(tokenRows[0].id).toBe(first.id);
+    expect(tokenRows[0].name).toBe('second-name');
+  });
+
+  it('rejects masking over an existing ready token on manual create', async () => {
+    const { account } = await seedAccount({ siteStatus: 'active' });
+    await db.insert(schema.accountTokens).values({
+      accountId: account.id,
+      name: 'ready-token',
+      token: 'sk-abc123456xyz',
+      source: 'manual',
+      enabled: true,
+      isDefault: true,
+      tokenGroup: 'default',
+      valueStatus: 'ready' as any,
+    }).run();
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/account-tokens',
+      payload: {
+        accountId: account.id,
+        name: 'mask-over-ready',
+        token: 'sk-abc***xyz',
+      },
+    });
+
+    expect(response.statusCode).toBe(409);
+    expect(response.json()).toMatchObject({
+      success: false,
+      message: expect.stringContaining('无法用脱敏值覆盖'),
+    });
+
+    const tokenRows = await db.select()
+      .from(schema.accountTokens)
+      .where(eq(schema.accountTokens.accountId, account.id))
+      .all();
+    expect(tokenRows).toHaveLength(1);
+    expect(tokenRows[0].token).toBe('sk-abc123456xyz');
+    expect((tokenRows[0] as any).valueStatus).toBe('ready');
   });
 
   it('returns the refreshed default state after creating the first manual token', async () => {
