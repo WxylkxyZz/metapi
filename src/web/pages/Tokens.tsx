@@ -607,7 +607,7 @@ export function TokensPanel({ embedded = false, onEmbeddedActionsChange }: Token
       const remainQuota = form.unlimitedQuota
         ? undefined
         : Number.parseInt(form.remainQuota, 10);
-      await api.addAccountToken({
+      const res = await api.addAccountToken({
         accountId: form.accountId,
         name: form.name,
         group: form.group || 'default',
@@ -615,8 +615,10 @@ export function TokensPanel({ embedded = false, onEmbeddedActionsChange }: Token
         remainQuota,
         expiredTime: form.expiredTime || undefined,
         allowIps: form.allowIps,
-      });
-      toast.success('已在站点创建并同步令牌');
+      }) as { createdViaUpstream?: boolean };
+      toast.success(res?.createdViaUpstream === true
+        ? '已在站点创建并同步令牌'
+        : '账号已有启用令牌，已同步站点令牌（未新建）');
       setForm(initialCreateForm);
       setShowAdd(false);
       setCreateHintModelName('');

@@ -7,6 +7,7 @@ import {
   ACCOUNT_TOKEN_VALUE_STATUS_READY,
   isMaskedPendingAccountToken,
   isMaskedTokenValue,
+  isReadyAccountToken,
   isUsableAccountToken,
   listTokensWithRelations,
   normalizeMaskedTokenForCompare,
@@ -647,26 +648,37 @@ export async function accountTokensRoutes(app: FastifyInstance) {
     }
 
     const platformUserId = resolvePlatformUserId(account.extraConfig, account.username);
-    const createdViaUpstream = await withAccountProxyOverride(
-      getProxyUrlFromExtraConfig(account.extraConfig),
-      () => adapter.createApiToken(
-        site.url,
-        account.accessToken,
-        platformUserId,
-        {
-          name: asTrimmedString(body.name),
-          group: asTrimmedString(body.group),
-          unlimitedQuota,
-          remainQuota,
-          expiredTime,
-          allowIps: asTrimmedString(body.allowIps),
-          modelLimitsEnabled,
-          modelLimits: asTrimmedString(body.modelLimits),
-        },
-      ),
-    );
-    if (!createdViaUpstream) {
-      return reply.code(502).send({ success: false, message: '站点创建令牌失败' });
+
+    // 本地已有启用令牌时不再新建上游令牌：只同步（覆盖本地，不追加），
+    // 避免每次点击"创建并同步"都在上游新建令牌并同步回本地造成重复。
+    const existingEnabled = await db.select().from(schema.accountTokens)
+      .where(and(eq(schema.accountTokens.accountId, account.id), eq(schema.accountTokens.enabled, true)))
+      .all()
+      .then((tokens) => tokens.some((t) => isReadyAccountToken(t)));
+
+    let createdViaUpstream = false;
+    if (!existingEnabled) {
+      createdViaUpstream = await withAccountProxyOverride(
+        getProxyUrlFromExtraConfig(account.extraConfig),
+        () => adapter.createApiToken(
+          site.url,
+          account.accessToken,
+          platformUserId,
+          {
+            name: asTrimmedString(body.name),
+            group: asTrimmedString(body.group),
+            unlimitedQuota,
+            remainQuota,
+            expiredTime,
+            allowIps: asTrimmedString(body.allowIps),
+            modelLimitsEnabled,
+            modelLimits: asTrimmedString(body.modelLimits),
+          },
+        ),
+      );
+      if (!createdViaUpstream) {
+        return reply.code(502).send({ success: false, message: '站点创建令牌失败' });
+      }
     }
 
     const syncResult = await executeAccountTokenSync(row);
@@ -690,7 +702,7 @@ export async function accountTokensRoutes(app: FastifyInstance) {
 
     return {
       success: true,
-      createdViaUpstream: true,
+      createdViaUpstream,
       ...syncResult,
       coverageRefresh,
       token,

@@ -820,6 +820,51 @@ describe('account tokens sync routes with site status', () => {
     });
   });
 
+  it('skips upstream token creation when account already has an enabled token, syncs instead', async () => {
+    const { account } = await seedAccount({ siteStatus: 'active' });
+    await db.insert(schema.accountTokens).values({
+      accountId: account.id,
+      name: 'existing-token',
+      token: 'sk-existing-token',
+      source: 'manual',
+      enabled: true,
+      isDefault: true,
+      tokenGroup: 'default',
+      valueStatus: 'ready' as any,
+    }).run();
+
+    getApiTokensMock.mockResolvedValue([
+      { name: 'existing-token', key: 'sk-existing-token', enabled: true, tokenGroup: 'default' },
+    ]);
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/account-tokens',
+      payload: {
+        accountId: account.id,
+        name: 'custom-token',
+        group: 'vip',
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      success: true,
+      createdViaUpstream: false,
+      synced: true,
+      status: 'synced',
+    });
+    expect(createApiTokenMock).not.toHaveBeenCalled();
+
+    const tokenRows = await db.select()
+      .from(schema.accountTokens)
+      .where(eq(schema.accountTokens.accountId, account.id))
+      .all();
+    expect(tokenRows).toHaveLength(1);
+    expect(tokenRows[0].name).toBe('existing-token');
+    expect(tokenRows[0].token).toBe('sk-existing-token');
+  });
+
   it('creates token via upstream api and syncs into local store when manual token is omitted', async () => {
     const { account, site } = await seedAccount({ siteStatus: 'active' });
     createApiTokenMock.mockResolvedValue(true);
