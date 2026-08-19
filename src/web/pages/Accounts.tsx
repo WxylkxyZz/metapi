@@ -30,8 +30,11 @@ import { TokensPanel } from "./Tokens.js";
 import { tr } from "../i18n.js";
 import {
   buildCustomReorderUpdates,
+  sortFieldOf,
   sortItemsForDisplay,
+  type SortField,
   type SortMode,
+  type SortValue,
 } from "./helpers/listSorting.js";
 import { shouldIgnoreRowSelectionClick } from "./helpers/rowSelection.js";
 import { SITE_DOCS_URL } from "../docsLink.js";
@@ -71,6 +74,24 @@ const ACCOUNT_SEGMENTS: Array<{
 ];
 
 const SITE_SELECT_SEARCH_PLACEHOLDER = "筛选站点（名称 / 平台 / URL）";
+
+const ACCOUNT_STATUS_RANK: Record<string, number> = {
+  active: 0,
+  disabled: 1,
+  expired: 2,
+};
+
+const ACCOUNT_SORT_ACCESSORS: Record<SortField, (account: any) => SortValue> = {
+  balance: (account) => account.balance,
+  status: (account) => ACCOUNT_STATUS_RANK[account.status] ?? 99,
+};
+
+const ACCOUNT_SORT_OPTIONS: Array<{ value: SortMode; label: string }> = [
+  { value: "status-asc", label: "状态排序" },
+  { value: "custom", label: "自定义排序" },
+  { value: "balance-desc", label: "余额高到低" },
+  { value: "balance-asc", label: "余额低到高" },
+];
 
 function createLoginForm() {
   return { siteId: 0, username: "", password: "" };
@@ -114,7 +135,7 @@ export default function Accounts() {
   const [accounts, setAccounts] = useState<any[]>([]);
   const [sites, setSites] = useState<any[]>([]);
   const [loaded, setLoaded] = useState(false);
-  const [sortMode, setSortMode] = useState<SortMode>("custom");
+  const [sortMode, setSortMode] = useState<SortMode>("status-asc");
   const [highlightAccountId, setHighlightAccountId] = useState<number | null>(
     null,
   );
@@ -288,11 +309,10 @@ export default function Accounts() {
 
   const sortedAccounts = useMemo(
     () =>
-      sortItemsForDisplay(
-        accounts,
-        sortMode,
-        (account) => account.balance || 0,
-      ),
+      sortItemsForDisplay(accounts, sortMode, (account, mode) => {
+        const field = sortFieldOf(mode);
+        return field ? ACCOUNT_SORT_ACCESSORS[field](account) : 0;
+      }),
     [accounts, sortMode],
   );
   const visibleAccounts = useMemo(() => {
@@ -1287,12 +1307,8 @@ export default function Accounts() {
                     size="sm"
                     value={sortMode}
                     onChange={(nextValue) => setSortMode(nextValue as SortMode)}
-                    options={[
-                      { value: "custom", label: "自定义排序" },
-                      { value: "balance-desc", label: "余额高到低" },
-                      { value: "balance-asc", label: "余额低到高" },
-                    ]}
-                    placeholder="自定义排序"
+                    options={ACCOUNT_SORT_OPTIONS}
+                    placeholder="状态排序"
                   />
                 </div>
                 {activeSegment === "session" && (
@@ -1368,12 +1384,8 @@ export default function Accounts() {
               <ModernSelect
                 value={sortMode}
                 onChange={(nextValue) => setSortMode(nextValue as SortMode)}
-                options={[
-                  { value: "custom", label: "自定义排序" },
-                  { value: "balance-desc", label: "余额高到低" },
-                  { value: "balance-asc", label: "余额低到高" },
-                ]}
-                placeholder="自定义排序"
+                options={ACCOUNT_SORT_OPTIONS}
+                placeholder="状态排序"
               />
             </div>
             {activeSegment === "session" && (

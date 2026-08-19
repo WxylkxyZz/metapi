@@ -1,4 +1,7 @@
-export type SortMode = 'custom' | 'balance-desc' | 'balance-asc';
+export type SortField = 'balance' | 'status';
+export type SortMode = 'custom' | `${SortField}-asc` | `${SortField}-desc`;
+
+export type SortValue = number | string | null | undefined;
 
 type SortableBase = {
   id: number;
@@ -6,10 +9,27 @@ type SortableBase = {
   sortOrder?: number | null;
 };
 
+export function sortFieldOf(mode: SortMode): SortField | undefined {
+  if (mode === 'custom') return undefined;
+  const idx = mode.lastIndexOf('-');
+  return mode.slice(0, idx) as SortField;
+}
+
+function compareSortValues(a: SortValue, b: SortValue): number {
+  const aNum = typeof a === 'number' && Number.isFinite(a);
+  const bNum = typeof b === 'number' && Number.isFinite(b);
+  if (aNum && bNum) return a - b;
+  if (aNum) return -1; // numeric before string/null
+  if (bNum) return 1;
+  const aStr = typeof a === 'string' && a.length > 0 ? a : '￿'; // null/empty -> last
+  const bStr = typeof b === 'string' && b.length > 0 ? b : '￿';
+  return aStr.localeCompare(bStr);
+}
+
 export function sortItemsForDisplay<T extends SortableBase>(
   items: T[],
   mode: SortMode,
-  getBalance: (item: T) => number,
+  getValue: (item: T, mode: SortMode) => SortValue,
 ): T[] {
   const list = [...items];
   const customComparator = (a: T, b: T) => {
@@ -27,16 +47,14 @@ export function sortItemsForDisplay<T extends SortableBase>(
     return list.sort(customComparator);
   }
 
+  const direction = mode.endsWith('-desc') ? -1 : 1;
   return list.sort((a, b) => {
     const aPinned = a.isPinned ? 1 : 0;
     const bPinned = b.isPinned ? 1 : 0;
     if (aPinned !== bPinned) return bPinned - aPinned;
 
-    const aBalance = Number.isFinite(getBalance(a)) ? getBalance(a) : 0;
-    const bBalance = Number.isFinite(getBalance(b)) ? getBalance(b) : 0;
-    if (aBalance !== bBalance) {
-      return mode === 'balance-desc' ? bBalance - aBalance : aBalance - bBalance;
-    }
+    const cmp = compareSortValues(getValue(a, mode), getValue(b, mode));
+    if (cmp !== 0) return direction * cmp;
 
     return customComparator(a, b);
   });
