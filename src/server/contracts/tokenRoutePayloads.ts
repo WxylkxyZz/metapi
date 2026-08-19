@@ -1,4 +1,13 @@
 import { z } from 'zod';
+import { parseTokenRouteRegexPattern } from '../../shared/tokenRoutePatterns.js';
+
+function validateModelPatternRefine(pattern: unknown): boolean {
+  if (typeof pattern !== 'string' || !pattern.trim()) return true;
+  if (!pattern.trim().toLowerCase().startsWith('re:')) return true;
+  const parsed = parseTokenRouteRegexPattern(pattern);
+  if (!parsed.regex) return false;
+  return true;
+}
 
 const routeChannelCreatePayloadSchema = z.object({
   accountId: z.number().int().positive(),
@@ -26,7 +35,9 @@ const routeChannelUpdatePayloadSchema = z.object({
 
 const tokenRouteCreatePayloadSchema = z.object({
   routeMode: z.string().optional(),
-  modelPattern: z.string().optional(),
+  modelPattern: z.string().refine(validateModelPatternRefine, {
+    message: '模型匹配正则不合法或存在安全隐患',
+  }).optional(),
   displayName: z.union([z.string(), z.null()]).optional(),
   displayIcon: z.union([z.string(), z.null()]).optional(),
   modelMapping: z.union([z.string(), z.null()]).optional(),
@@ -37,7 +48,9 @@ const tokenRouteCreatePayloadSchema = z.object({
 
 const tokenRouteUpdatePayloadSchema = z.object({
   routeMode: z.string().optional(),
-  modelPattern: z.string().optional(),
+  modelPattern: z.string().refine(validateModelPatternRefine, {
+    message: '模型匹配正则不合法或存在安全隐患',
+  }).optional(),
   displayName: z.union([z.string(), z.null()]).optional(),
   displayIcon: z.union([z.string(), z.null()]).optional(),
   modelMapping: z.union([z.string(), z.null()]).optional(),
@@ -78,6 +91,10 @@ function formatTokenRoutePayloadError(error: z.ZodError): string {
     return 'Invalid routeMode. Expected string.';
   }
   if (firstPath === 'modelPattern') {
+    const issue = error.issues[0];
+    if (issue?.message && issue.message !== 'Invalid input') {
+      return issue.message;
+    }
     return 'Invalid modelPattern. Expected string.';
   }
   if (firstPath === 'displayName') {

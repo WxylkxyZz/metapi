@@ -10,9 +10,14 @@ type Candidate = {
 };
 
 describe('filterRecentlyFailedCandidates', () => {
-  it('rejects unsafe nested-quantifier regex route patterns', () => {
-    expect(parseRegexModelPattern('re:(?=claude)')).toBeNull();
-    expect(matchesModelPattern('claude-sonnet-4-6', 're:(?=claude)')).toBe(false);
+  it('supports lookahead regex route patterns (standard regex semantics)', () => {
+    // Lookahead is a standard RegExp feature; it must now be supported.
+    expect(parseRegexModelPattern('re:(?=claude)')).not.toBeNull();
+    // Lookahead works with standard (contains) semantics.
+    expect(matchesModelPattern('claude-sonnet-4-6', 're:(?=claude)')).toBe(true);
+    // Anchored negative lookahead: excludes opus but allows haiku.
+    expect(matchesModelPattern('claude-haiku-4-6', 're:^claude-(?!opus)\\w+')).toBe(true);
+    expect(matchesModelPattern('claude-opus-4-6', 're:^claude-(?!opus)\\w+')).toBe(false);
   });
 
   it('uses a short default recent-failure window', () => {
