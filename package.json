@@ -1,6 +1,6 @@
 {
   "name": "canopy",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Canopy — meta-layer management and unified proxy for AI API aggregation platforms",
   "main": "dist/server/index.js",
   "keywords": [
