@@ -136,7 +136,6 @@ function resolveRangeSinceUtc(range: DownstreamKeyRange): string | null {
 
 async function validatePolicyReferences(input: {
   allowedRouteIds: number[];
-  siteWeightMultipliers: Record<number, number>;
   excludedSiteIds: number[];
   excludedCredentialRefs: DownstreamExcludedCredentialRef[];
 }): Promise<string | null> {
@@ -153,14 +152,10 @@ async function validatePolicyReferences(input: {
     }
   }
 
-  const weightedSiteIds = Object.keys(input.siteWeightMultipliers || {})
-    .map((key) => Number(key))
-    .filter((value) => Number.isFinite(value) && value > 0)
-    .map((value) => Math.trunc(value));
   const excludedSiteIds = (input.excludedSiteIds || [])
     .filter((value) => Number.isFinite(value) && value > 0)
     .map((value) => Math.trunc(value));
-  const siteIds = Array.from(new Set([...weightedSiteIds, ...excludedSiteIds]));
+  const siteIds = Array.from(new Set(excludedSiteIds));
   if (siteIds.length > 0) {
     const rows = await db.select({ id: schema.sites.id })
       .from(schema.sites)
@@ -496,7 +491,6 @@ export async function downstreamApiKeysRoutes(app: FastifyInstance) {
     }
     const policyRefError = await validatePolicyReferences({
       allowedRouteIds: normalized.allowedRouteIds,
-      siteWeightMultipliers: normalized.siteWeightMultipliers,
       excludedSiteIds: normalized.excludedSiteIds,
       excludedCredentialRefs: normalized.excludedCredentialRefs,
     });
@@ -524,7 +518,6 @@ export async function downstreamApiKeysRoutes(app: FastifyInstance) {
           usedRequests: 0,
           supportedModels: toPersistenceJson(normalized.supportedModels),
           allowedRouteIds: toPersistenceJson(normalized.allowedRouteIds),
-          siteWeightMultipliers: toPersistenceJson(normalized.siteWeightMultipliers),
           excludedSiteIds: toPersistenceJson(normalized.excludedSiteIds),
           excludedCredentialRefs: toPersistenceJson(normalized.excludedCredentialRefs),
           createdAt: nowIso,
@@ -582,7 +575,6 @@ export async function downstreamApiKeysRoutes(app: FastifyInstance) {
         maxRequests: hasOwn('maxRequests') ? body.maxRequests : existing.maxRequests,
         supportedModels: hasOwn('supportedModels') ? body.supportedModels : existingView.supportedModels,
         allowedRouteIds: hasOwn('allowedRouteIds') ? body.allowedRouteIds : existingView.allowedRouteIds,
-        siteWeightMultipliers: hasOwn('siteWeightMultipliers') ? body.siteWeightMultipliers : existingView.siteWeightMultipliers,
         excludedSiteIds: hasOwn('excludedSiteIds') ? body.excludedSiteIds : existingView.excludedSiteIds,
         excludedCredentialRefs: hasOwn('excludedCredentialRefs') ? body.excludedCredentialRefs : existingView.excludedCredentialRefs,
       });
@@ -601,7 +593,6 @@ export async function downstreamApiKeysRoutes(app: FastifyInstance) {
     }
     const policyRefError = await validatePolicyReferences({
       allowedRouteIds: normalized.allowedRouteIds,
-      siteWeightMultipliers: normalized.siteWeightMultipliers,
       excludedSiteIds: normalized.excludedSiteIds,
       excludedCredentialRefs: normalized.excludedCredentialRefs,
     });
@@ -623,7 +614,6 @@ export async function downstreamApiKeysRoutes(app: FastifyInstance) {
         maxRequests: normalized.maxRequests,
         supportedModels: toPersistenceJson(normalized.supportedModels),
         allowedRouteIds: toPersistenceJson(normalized.allowedRouteIds),
-        siteWeightMultipliers: toPersistenceJson(normalized.siteWeightMultipliers),
         excludedSiteIds: toPersistenceJson(normalized.excludedSiteIds),
         excludedCredentialRefs: toPersistenceJson(normalized.excludedCredentialRefs),
         updatedAt: nowIso,

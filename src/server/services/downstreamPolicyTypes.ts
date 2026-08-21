@@ -18,7 +18,6 @@ export type DownstreamExcludedCredentialRef =
 export interface DownstreamRoutingPolicy {
   supportedModels: string[];
   allowedRouteIds: number[];
-  siteWeightMultipliers: Record<number, number>;
   excludedSiteIds: number[];
   excludedCredentialRefs: DownstreamExcludedCredentialRef[];
   denyAllWhenEmpty?: boolean;
@@ -27,7 +26,6 @@ export interface DownstreamRoutingPolicy {
 export const EMPTY_DOWNSTREAM_ROUTING_POLICY: DownstreamRoutingPolicy = {
   supportedModels: [],
   allowedRouteIds: [],
-  siteWeightMultipliers: {},
   excludedSiteIds: [],
   excludedCredentialRefs: [],
 };

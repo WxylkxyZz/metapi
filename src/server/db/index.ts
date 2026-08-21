@@ -390,22 +390,6 @@ function ensureSiteExternalCheckinUrlSchema() {
   }
 }
 
-function ensureSiteGlobalWeightSchema() {
-  if (!tableExists('sites')) {
-    return;
-  }
-
-  if (!tableColumnExists('sites', 'global_weight')) {
-    execSqliteLegacyCompat(`ALTER TABLE sites ADD COLUMN global_weight real DEFAULT 1;`);
-  }
-
-  execSqliteLegacyCompat(`
-    UPDATE sites
-    SET global_weight = 1
-    WHERE global_weight IS NULL
-      OR global_weight <= 0;
-  `);
-}
 
 type RuntimeSchemaInspector = {
   dialect: SiteSchemaInspector['dialect'];
@@ -580,7 +564,6 @@ function ensureDownstreamApiKeySchema() {
       used_requests integer DEFAULT 0,
       supported_models text,
       allowed_route_ids text,
-      site_weight_multipliers text,
       last_used_at text,
       created_at text DEFAULT (datetime('now')),
       updated_at text DEFAULT (datetime('now'))
@@ -1367,7 +1350,6 @@ function initSqliteDb() {
   ensureSiteUseSystemProxySchema();
   ensureSiteCustomHeadersSchema();
   ensureSiteExternalCheckinUrlSchema();
-  ensureSiteGlobalWeightSchema();
   ensureRouteGroupingSchema();
   ensureDownstreamApiKeySchema();
   ensureProxyLogBillingDetailsSchema();

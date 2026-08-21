@@ -13,7 +13,6 @@ export const sites = sqliteTable('sites', {
   status: text('status').notNull().default('active'), // 'active' | 'disabled'
   isPinned: integer('is_pinned', { mode: 'boolean' }).default(false),
   sortOrder: integer('sort_order').default(0),
-  globalWeight: real('global_weight').default(1),
   apiKey: text('api_key'),
   postRefreshProbeEnabled: integer('post_refresh_probe_enabled', { mode: 'boolean' }).default(false),
   postRefreshProbeModel: text('post_refresh_probe_model').default(''),
@@ -505,7 +504,6 @@ export const downstreamApiKeys = sqliteTable('downstream_api_keys', {
   usedRequests: integer('used_requests').default(0),
   supportedModels: text('supported_models'), // JSON array<string>
   allowedRouteIds: text('allowed_route_ids'), // JSON array<number>
-  siteWeightMultipliers: text('site_weight_multipliers'), // JSON object { [siteId]: multiplier }
   excludedSiteIds: text('excluded_site_ids'), // JSON array<number>
   excludedCredentialRefs: text('excluded_credential_refs'), // JSON array<DownstreamExcludedCredentialRef>
   lastUsedAt: text('last_used_at'),

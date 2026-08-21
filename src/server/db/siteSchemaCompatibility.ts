@@ -57,20 +57,7 @@ export const SITE_COLUMN_COMPATIBILITY_SPECS: SiteColumnCompatibilitySpec[] = [
       postgres: 'ALTER TABLE "sites" ADD COLUMN "external_checkin_url" TEXT',
     },
   },
-  {
-    column: 'global_weight',
-    addSql: {
-      sqlite: 'ALTER TABLE sites ADD COLUMN global_weight real DEFAULT 1;',
-      mysql: 'ALTER TABLE `sites` ADD COLUMN `global_weight` DOUBLE DEFAULT 1',
-      postgres: 'ALTER TABLE "sites" ADD COLUMN "global_weight" DOUBLE PRECISION DEFAULT 1',
-    },
-    normalizeSql: {
-      sqlite: 'UPDATE sites SET global_weight = 1 WHERE global_weight IS NULL OR global_weight <= 0;',
-      mysql: 'UPDATE `sites` SET `global_weight` = 1 WHERE `global_weight` IS NULL OR `global_weight` <= 0',
-      postgres: 'UPDATE "sites" SET "global_weight" = 1 WHERE "global_weight" IS NULL OR "global_weight" <= 0',
-    },
-  },
-];
+  ];
 
 export const SITE_TABLE_COMPATIBILITY_SPECS: SiteTableCompatibilitySpec[] = [
   {

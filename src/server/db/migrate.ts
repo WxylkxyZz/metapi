@@ -538,52 +538,6 @@ function tryRecoverDuplicateColumnMigrationError(
   return (recovery?.recoveredCount ?? 0) > 0;
 }
 
-function rewriteDownstreamSiteWeightMultipliers(
-  sqlite: Database.Database,
-  siteIdMapping: Map<number, number>,
-): void {
-  if (siteIdMapping.size <= 0) return;
-  if (!tableExists(sqlite, 'downstream_api_keys')) return;
-  if (!columnExists(sqlite, 'downstream_api_keys', 'site_weight_multipliers')) return;
-
-  const rows = sqlite.prepare(`
-    SELECT id, site_weight_multipliers
-    FROM downstream_api_keys
-    WHERE site_weight_multipliers IS NOT NULL
-      AND TRIM(site_weight_multipliers) <> ''
-  `).all() as Array<{ id: number; site_weight_multipliers: string | null }>;
-
-  const update = sqlite.prepare('UPDATE downstream_api_keys SET site_weight_multipliers = ? WHERE id = ?');
-  for (const row of rows) {
-    if (!row.site_weight_multipliers) continue;
-
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(row.site_weight_multipliers);
-    } catch {
-      continue;
-    }
-
-    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) continue;
-    const nextValue = { ...(parsed as Record<string, unknown>) };
-    let changed = false;
-
-    for (const [fromSiteId, toSiteId] of siteIdMapping.entries()) {
-      const fromKey = String(fromSiteId);
-      const toKey = String(toSiteId);
-      if (!(fromKey in nextValue)) continue;
-      if (!(toKey in nextValue)) {
-        nextValue[toKey] = nextValue[fromKey];
-      }
-      delete nextValue[fromKey];
-      changed = true;
-    }
-
-    if (!changed) continue;
-    update.run(JSON.stringify(nextValue), row.id);
-  }
-}
-
 function deduplicateLegacySitesForUniqueIndex(sqlite: Database.Database): boolean {
   const duplicateGroups = sqlite.prepare(`
     SELECT platform, url
@@ -629,7 +583,6 @@ function deduplicateLegacySitesForUniqueIndex(sqlite: Database.Database): boolea
       }
     }
 
-    rewriteDownstreamSiteWeightMultipliers(sqlite, siteIdMapping);
   });
 
   transaction();

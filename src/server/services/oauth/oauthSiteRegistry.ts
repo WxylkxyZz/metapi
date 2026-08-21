@@ -37,7 +37,6 @@ export async function ensureOauthProviderSite(definition: OAuthProviderDefinitio
         status: 'active',
         useSystemProxy: false,
         isPinned: false,
-        globalWeight: 1,
         sortOrder: await getNextSiteSortOrder(),
       },
       insertErrorMessage: `failed to create oauth provider site: ${definition.site.platform}`,
