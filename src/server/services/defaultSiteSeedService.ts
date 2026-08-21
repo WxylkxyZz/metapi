@@ -12,7 +12,6 @@ const DEFAULT_SITE_ROWS: Array<typeof schema.sites.$inferInsert> = [
     status: 'active',
     useSystemProxy: false,
     isPinned: false,
-    globalWeight: 1,
     sortOrder: 0,
   },
   {
@@ -22,7 +21,6 @@ const DEFAULT_SITE_ROWS: Array<typeof schema.sites.$inferInsert> = [
     status: 'active',
     useSystemProxy: false,
     isPinned: false,
-    globalWeight: 1,
     sortOrder: 1,
   },
   {
@@ -32,7 +30,6 @@ const DEFAULT_SITE_ROWS: Array<typeof schema.sites.$inferInsert> = [
     status: 'active',
     useSystemProxy: false,
     isPinned: false,
-    globalWeight: 1,
     sortOrder: 2,
   },
   {
@@ -42,7 +39,6 @@ const DEFAULT_SITE_ROWS: Array<typeof schema.sites.$inferInsert> = [
     status: 'active',
     useSystemProxy: false,
     isPinned: false,
-    globalWeight: 1,
     sortOrder: 3,
   },
 ];

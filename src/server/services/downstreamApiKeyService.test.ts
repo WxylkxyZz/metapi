@@ -99,7 +99,6 @@ describe('downstreamApiKeyService', () => {
       enabled: true,
       supportedModels: JSON.stringify(['re:^claude-(opus|sonnet)-4-6$', 'gpt-4o-mini']),
       allowedRouteIds: JSON.stringify([101, 102]),
-      siteWeightMultipliers: JSON.stringify({ '1': 2.5, '7': 0.4 }),
     }).returning().get();
 
     const result = await service.authorizeDownstreamToken(row.key);
@@ -108,8 +107,6 @@ describe('downstreamApiKeyService', () => {
 
     expect(result.key?.id).toBe(row.id);
     expect(result.policy.allowedRouteIds).toEqual([101, 102]);
-    expect(result.policy.siteWeightMultipliers[1]).toBeCloseTo(2.5);
-    expect(result.policy.siteWeightMultipliers[7]).toBeCloseTo(0.4);
 
     expect(service.isModelAllowedByPolicy('claude-opus-4-6', result.policy)).toBe(true);
     expect(service.isModelAllowedByPolicy('gpt-4o-mini', result.policy)).toBe(true);
@@ -132,7 +129,6 @@ describe('downstreamApiKeyService', () => {
     const policy = {
       supportedModels: ['gpt-4o-mini'],
       allowedRouteIds: [claudeGroup.id],
-      siteWeightMultipliers: {},
     };
 
     expect(service.isModelAllowedByPolicy('claude-4-6-group', policy)).toBe(false);
@@ -146,7 +142,6 @@ describe('downstreamApiKeyService', () => {
     const policy = {
       supportedModels: [],
       allowedRouteIds: [],
-      siteWeightMultipliers: {},
       denyAllWhenEmpty: true,
     };
 
@@ -163,7 +158,6 @@ describe('downstreamApiKeyService', () => {
     const policy = {
       supportedModels: [],
       allowedRouteIds: [virtualModelGroup.id],
-      siteWeightMultipliers: {},
     };
 
     expect(await service.isModelAllowedByPolicyOrAllowedRoutes('claude-opus-4-6', policy)).toBe(true);
@@ -180,7 +174,6 @@ describe('downstreamApiKeyService', () => {
     const policy = {
       supportedModels: [],
       allowedRouteIds: [aliasRoute.id],
-      siteWeightMultipliers: {},
     };
 
     expect(await service.isModelAllowedByPolicyOrAllowedRoutes('claude-opus-4-6', policy)).toBe(true);

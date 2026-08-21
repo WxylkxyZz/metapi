@@ -63,7 +63,6 @@ type SiteRow = {
   proxyUrl?: string | null;
   useSystemProxy?: boolean;
   customHeaders?: string | null;
-  globalWeight?: number;
   isPinned?: boolean;
   sortOrder?: number;
   totalBalance?: number;
@@ -741,11 +740,6 @@ export default function Sites() {
 
   const handleSave = async () => {
     if (!editor) return;
-    const parsedGlobalWeight = Number(form.globalWeight);
-    if (!Number.isFinite(parsedGlobalWeight) || parsedGlobalWeight <= 0) {
-      toast.error('全局权重必须是大于 0 的数字');
-      return;
-    }
     const serializedCustomHeaders = serializeSiteCustomHeaders(form.customHeaders);
     if (!serializedCustomHeaders.valid) {
       toast.error(serializedCustomHeaders.error || '自定义请求头格式不正确');
@@ -767,7 +761,6 @@ export default function Sites() {
       useSystemProxy: !!form.useSystemProxy,
       apiEndpoints: serializedApiEndpoints.apiEndpoints,
       customHeaders: serializedCustomHeaders.customHeaders,
-      globalWeight: Number(parsedGlobalWeight.toFixed(3)),
       postRefreshProbeEnabled: probeEnabled,
       postRefreshProbeModel: probeModel.trim(),
       postRefreshProbeScope: probeScope,
@@ -1257,10 +1250,6 @@ export default function Sites() {
           </button>
         </ResponsiveBatchActionBar>
       )}
-
-      <div className="info-tip" style={{ marginBottom: 12 }}>
-        站点权重说明：最终站点倍率 = 站点全局权重 × 设置页中下游 API Key 的站点倍率。它会与路由策略因子（基础权重、价值分、成本、余额、使用频次）共同作用。数值越大，该站点在同优先级下越容易被选中。建议范围 0.5-3，默认 1；长期不建议超过 5。
-      </div>
 
       <DeleteConfirmModal
         open={Boolean(deleteConfirm)}
@@ -1922,17 +1911,6 @@ export default function Sites() {
               />
               使用系统代理
             </label>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <input
-                placeholder="站点全局权重（默认 1）"
-                value={form.globalWeight}
-                onChange={(e) => setForm((prev) => ({ ...prev, globalWeight: e.target.value }))}
-                style={formInputStyle}
-              />
-              <div style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>
-                越大越容易被路由选中。建议 0.5-3，默认 1。
-              </div>
-            </div>
           </ResponsiveFormGrid>
         </CenteredModal>
       )}
@@ -2033,7 +2011,6 @@ export default function Sites() {
                         />
                       )}
                     />
-                    <MobileField label="权重" value={(site.globalWeight || 1).toFixed(2)} />
                     {isExpanded ? (
                       <div className="mobile-card-extra">
                         <MobileField
@@ -2173,7 +2150,6 @@ export default function Sites() {
                   <th>总余额</th>
                   <th>状态</th>
                   <th>系统代理</th>
-                  <th>权重</th>
                   <th>平台</th>
                   <th>创建时间</th>
                   <th className="sites-actions-col" style={{ textAlign: 'right' }}>操作</th>
@@ -2256,9 +2232,6 @@ export default function Sites() {
                       <span className={`badge ${site.useSystemProxy ? 'badge-info' : 'badge-muted'}`} style={{ fontSize: 11 }}>
                         {site.useSystemProxy ? '已开启' : '未开启'}
                       </span>
-                    </td>
-                    <td style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>
-                      {(site.globalWeight || 1).toFixed(2)}
                     </td>
                     <td>
                       <a

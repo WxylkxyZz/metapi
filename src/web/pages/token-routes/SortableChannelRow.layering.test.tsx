@@ -56,8 +56,11 @@ describe('SortableChannelRow layering', () => {
             ]}
             activeTokenId={0}
             isUpdatingToken={false}
+            channelWeightDraft={{}}
             onTokenDraftChange={vi.fn()}
+            onChannelWeightDraftChange={vi.fn()}
             onSaveToken={vi.fn()}
+            onSaveChannelWeight={vi.fn()}
             onDeleteChannel={vi.fn()}
             onToggleEnabled={vi.fn()}
             onSiteBlockModel={vi.fn()}
@@ -96,8 +99,11 @@ describe('SortableChannelRow layering', () => {
             ]}
             activeTokenId={0}
             isUpdatingToken={false}
+            channelWeightDraft={{}}
             onTokenDraftChange={vi.fn()}
+            onChannelWeightDraftChange={vi.fn()}
             onSaveToken={vi.fn()}
+            onSaveChannelWeight={vi.fn()}
             onDeleteChannel={vi.fn()}
             onToggleEnabled={vi.fn()}
             onSiteBlockModel={vi.fn()}
@@ -131,8 +137,11 @@ describe('SortableChannelRow layering', () => {
             ]}
             activeTokenId={0}
             isUpdatingToken={false}
+            channelWeightDraft={{}}
             onTokenDraftChange={vi.fn()}
+            onChannelWeightDraftChange={vi.fn()}
             onSaveToken={vi.fn()}
+            onSaveChannelWeight={vi.fn()}
             onDeleteChannel={vi.fn()}
             onToggleEnabled={vi.fn()}
             onSiteBlockModel={vi.fn()}

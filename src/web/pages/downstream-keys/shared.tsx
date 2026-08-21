@@ -17,7 +17,6 @@ export type SummaryItem = {
   usedRequests: number;
   supportedModels: string[];
   allowedRouteIds: number[];
-  siteWeightMultipliers: Record<number, number>;
   excludedSiteIds: number[];
   excludedCredentialRefs: Array<
     | { kind: 'account_token'; siteId: number; accountId: number; tokenId: number }

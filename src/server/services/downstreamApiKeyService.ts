@@ -26,7 +26,6 @@ export type DownstreamApiKeyPolicyView = {
   usedRequests: number;
   supportedModels: string[];
   allowedRouteIds: number[];
-  siteWeightMultipliers: Record<number, number>;
   excludedSiteIds: number[];
   excludedCredentialRefs: DownstreamExcludedCredentialRef[];
   lastUsedAt: string | null;
@@ -180,28 +179,6 @@ export function normalizeAllowedRouteIdsInput(input: unknown): number[] {
   return routeIds;
 }
 
-export function normalizeSiteWeightMultipliersInput(input: unknown): Record<number, number> {
-  const raw = (typeof input === 'string')
-    ? parseJson(input)
-    : input;
-
-  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
-    return {};
-  }
-
-  const result: Record<number, number> = {};
-  for (const [rawSiteId, rawMultiplier] of Object.entries(raw as Record<string, unknown>)) {
-    const siteId = Number(rawSiteId);
-    const multiplier = Number(rawMultiplier);
-    if (!Number.isFinite(siteId) || !Number.isFinite(multiplier)) continue;
-    const normalizedSiteId = Math.trunc(siteId);
-    if (normalizedSiteId <= 0 || multiplier <= 0) continue;
-    result[normalizedSiteId] = multiplier;
-  }
-
-  return result;
-}
-
 export function normalizeExcludedSiteIdsInput(input: unknown): number[] {
   const rawValues = Array.isArray(input)
     ? input
@@ -344,7 +321,6 @@ export async function isModelAllowedByPolicyOrAllowedRoutes(model: string, polic
 export function toDownstreamApiKeyPolicyView(row: DownstreamApiKeyRow): DownstreamApiKeyPolicyView {
   const supportedModels = normalizeSupportedModelsInput(parseJson(row.supportedModels));
   const allowedRouteIds = normalizeAllowedRouteIdsInput(parseJson(row.allowedRouteIds));
-  const siteWeightMultipliers = normalizeSiteWeightMultipliersInput(parseJson(row.siteWeightMultipliers));
   const excludedSiteIds = normalizeExcludedSiteIdsInput(parseJson(row.excludedSiteIds));
   const excludedCredentialRefs = normalizeExcludedCredentialRefsInput(parseJson(row.excludedCredentialRefs));
 
@@ -364,7 +340,6 @@ export function toDownstreamApiKeyPolicyView(row: DownstreamApiKeyRow): Downstre
     usedRequests: Number(row.usedRequests || 0),
     supportedModels,
     allowedRouteIds,
-    siteWeightMultipliers,
     excludedSiteIds,
     excludedCredentialRefs,
     lastUsedAt: row.lastUsedAt || null,
@@ -373,11 +348,10 @@ export function toDownstreamApiKeyPolicyView(row: DownstreamApiKeyRow): Downstre
   };
 }
 
-export function toPolicyFromView(view: Pick<DownstreamApiKeyPolicyView, 'supportedModels' | 'allowedRouteIds' | 'siteWeightMultipliers' | 'excludedSiteIds' | 'excludedCredentialRefs'>): DownstreamRoutingPolicy {
+export function toPolicyFromView(view: Pick<DownstreamApiKeyPolicyView, 'supportedModels' | 'allowedRouteIds' | 'excludedSiteIds' | 'excludedCredentialRefs'>): DownstreamRoutingPolicy {
   return {
     supportedModels: normalizeSupportedModelsInput(view.supportedModels),
     allowedRouteIds: normalizeAllowedRouteIdsInput(view.allowedRouteIds),
-    siteWeightMultipliers: normalizeSiteWeightMultipliersInput(view.siteWeightMultipliers),
     excludedSiteIds: normalizeExcludedSiteIdsInput(view.excludedSiteIds),
     excludedCredentialRefs: normalizeExcludedCredentialRefsInput(view.excludedCredentialRefs),
     denyAllWhenEmpty: true,
@@ -528,7 +502,6 @@ export function normalizeDownstreamApiKeyPayload(input: {
   maxRequests?: unknown;
   supportedModels?: unknown;
   allowedRouteIds?: unknown;
-  siteWeightMultipliers?: unknown;
   excludedSiteIds?: unknown;
   excludedCredentialRefs?: unknown;
 }) {
@@ -557,7 +530,6 @@ export function normalizeDownstreamApiKeyPayload(input: {
   const maxRequests = normalizePositiveIntegerOrNull(input.maxRequests);
   const supportedModels = normalizeSupportedModelsInput(input.supportedModels);
   const allowedRouteIds = normalizeAllowedRouteIdsInput(input.allowedRouteIds);
-  const siteWeightMultipliers = normalizeSiteWeightMultipliersInput(input.siteWeightMultipliers);
   const excludedSiteIds = normalizeExcludedSiteIdsInput(input.excludedSiteIds);
   const excludedCredentialRefs = normalizeExcludedCredentialRefsInput(input.excludedCredentialRefs);
 
@@ -573,7 +545,6 @@ export function normalizeDownstreamApiKeyPayload(input: {
     maxRequests,
     supportedModels,
     allowedRouteIds,
-    siteWeightMultipliers,
     excludedSiteIds,
     excludedCredentialRefs,
   };

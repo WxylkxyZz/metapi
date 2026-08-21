@@ -158,8 +158,11 @@ export type SortableChannelRowProps = {
   tokenOptions: RouteTokenOption[];
   activeTokenId: number;
   isUpdatingToken: boolean;
+  channelWeightDraft: Record<number, string>;
   onTokenDraftChange: (channelId: number, tokenId: number) => void;
+  onChannelWeightDraftChange: (updater: (prev: Record<number, string>) => Record<number, string>) => void;
   onSaveToken: () => void;
+  onSaveChannelWeight: () => void;
   onDeleteChannel: () => void;
   onToggleEnabled: (enabled: boolean) => void;
   onSiteBlockModel?: () => void;

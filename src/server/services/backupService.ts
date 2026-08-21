@@ -96,7 +96,6 @@ type BackupDownstreamApiKeyRow = Pick<DownstreamApiKeyRow,
   | 'maxRequests'
   | 'supportedModels'
   | 'allowedRouteIds'
-  | 'siteWeightMultipliers'
   | 'excludedSiteIds'
   | 'excludedCredentialRefs'
 > & Partial<Pick<DownstreamApiKeyRow, 'usedCost' | 'usedRequests' | 'lastUsedAt'>>;
@@ -759,7 +758,6 @@ function buildAllApiHubV2AccountsSection(data: RawBackupData): {
       status: 'active',
       isPinned: false,
       sortOrder: section.sites.length,
-      globalWeight: 1,
       apiKey: null,
       postRefreshProbeEnabled: false,
       postRefreshProbeModel: '',
@@ -1006,7 +1004,6 @@ function buildAccountsSectionFromRefBackup(data: RawBackupData): AccountsBackupS
         status: 'active',
         isPinned: false,
         sortOrder: sites.length,
-        globalWeight: 1,
         apiKey: null,
         postRefreshProbeEnabled: false,
         postRefreshProbeModel: '',
@@ -1561,7 +1558,6 @@ async function importAccountsSection(section: AccountsBackupSection): Promise<vo
         status: row.status || 'active',
         isPinned: row.isPinned ?? false,
         sortOrder: row.sortOrder ?? 0,
-        globalWeight: row.globalWeight ?? 1,
         apiKey: row.apiKey,
         postRefreshProbeEnabled: row.postRefreshProbeEnabled ?? false,
         postRefreshProbeModel: row.postRefreshProbeModel ?? '',
@@ -1791,7 +1787,6 @@ async function importAccountsSection(section: AccountsBackupSection): Promise<vo
           usedRequests: runtimeDownstream?.usedRequests ?? row.usedRequests ?? 0,
           supportedModels: row.supportedModels ?? null,
           allowedRouteIds: row.allowedRouteIds ?? null,
-          siteWeightMultipliers: row.siteWeightMultipliers ?? null,
           excludedSiteIds: row.excludedSiteIds ?? null,
           excludedCredentialRefs: row.excludedCredentialRefs ?? null,
           lastUsedAt: runtimeDownstream?.lastUsedAt ?? row.lastUsedAt ?? null,

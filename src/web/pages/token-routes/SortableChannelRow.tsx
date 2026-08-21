@@ -13,6 +13,60 @@ function getRouteUnitStrategyLabel(strategy: string | null | undefined): string 
   return strategy === 'stick_until_unavailable' ? '单个用到不可用再切' : '轮询';
 }
 
+function ChannelWeightEditor({
+  channel,
+  channelWeightDraft,
+  isUpdating,
+  onDraftChange,
+  onSave,
+}: {
+  channel: { id: number; weight: number };
+  channelWeightDraft: Record<number, string>;
+  isUpdating: boolean;
+  onDraftChange: (updater: (prev: Record<number, string>) => Record<number, string>) => void;
+  onSave: () => void;
+}) {
+  const draftValue = channelWeightDraft[channel.id] ?? String(channel.weight ?? 10);
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+      <input
+        type="number"
+        min="0"
+        step="1"
+        value={draftValue}
+        onChange={(e) => onDraftChange((prev) => ({ ...prev, [channel.id]: e.target.value }))}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            onSave();
+          }
+        }}
+        style={{
+          width: 64,
+          padding: '3px 6px',
+          border: '1px solid var(--color-border)',
+          borderRadius: 8,
+          background: 'var(--color-bg)',
+          color: 'var(--color-text-primary)',
+          fontSize: 12,
+          fontVariantNumeric: 'tabular-nums',
+        }}
+        aria-label="通道权重"
+        title="通道权重：同优先级内加权随机，数值越大越容易被选中"
+      />
+      <button
+        type="button"
+        onClick={onSave}
+        disabled={isUpdating}
+        className="btn btn-link btn-link-info"
+        style={{ padding: '2px 4px', fontSize: 11.5 }}
+      >
+        {isUpdating ? <span className="spinner spinner-sm" /> : '保存权重'}
+      </button>
+    </span>
+  );
+}
+
 function formatRouteUnitMemberLabel(member: { accountId: number; username: string | null; siteName: string | null }): string {
   const accountLabel = member.username?.trim() || `account-${member.accountId}`;
   const siteLabel = member.siteName?.trim();
@@ -37,8 +91,11 @@ export function SortableChannelRow({
   tokenOptions,
   activeTokenId,
   isUpdatingToken,
+  channelWeightDraft,
   onTokenDraftChange,
+  onChannelWeightDraftChange,
   onSaveToken,
+  onSaveChannelWeight,
   onDeleteChannel,
   onToggleEnabled,
   onSiteBlockModel,
@@ -315,6 +372,17 @@ export function SortableChannelRow({
                   </div>
                 </div>
 
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: 10.5, color: 'var(--color-text-muted)' }}>同优先级内权重越大越易选中</span>
+                  <ChannelWeightEditor
+                    channel={channel}
+                    channelWeightDraft={channelWeightDraft}
+                    isUpdating={isUpdatingToken}
+                    onDraftChange={onChannelWeightDraftChange}
+                    onSave={onSaveChannelWeight}
+                  />
+                </div>
+
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 10, flexWrap: 'wrap' }}>
                   <button
                     onClick={onSaveToken}
@@ -549,6 +617,13 @@ export function SortableChannelRow({
                 {tokenBinding.helperText}
               </div>
             </div>
+            <ChannelWeightEditor
+              channel={channel}
+              channelWeightDraft={channelWeightDraft}
+              isUpdating={isUpdatingToken}
+              onDraftChange={onChannelWeightDraftChange}
+              onSave={onSaveChannelWeight}
+            />
             <button
               onClick={onSaveToken}
               disabled={isUpdatingToken}

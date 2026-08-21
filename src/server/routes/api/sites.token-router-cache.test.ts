@@ -56,13 +56,12 @@ describe('sites token-router cache invalidation', () => {
     delete process.env.DATA_DIR;
   });
 
-  it('recomputes probabilities with the new site weight after updating a site', async () => {
+  it('recomputes probabilities after updating a site status', async () => {
     const targetSite = await db.insert(schema.sites).values({
       name: 'weighted-target',
       url: 'https://weighted-target.example.com',
       platform: 'new-api',
       status: 'active',
-      globalWeight: 1,
     }).returning().get();
 
     const competitorSite = await db.insert(schema.sites).values({
@@ -70,7 +69,6 @@ describe('sites token-router cache invalidation', () => {
       url: 'https://weighted-competitor.example.com',
       platform: 'new-api',
       status: 'active',
-      globalWeight: 1,
     }).returning().get();
 
     const targetAccount = await db.insert(schema.accounts).values({
@@ -125,7 +123,7 @@ describe('sites token-router cache invalidation', () => {
       method: 'PUT',
       url: `/api/sites/${targetSite.id}`,
       payload: {
-        globalWeight: 100,
+        status: 'disabled',
       },
     });
 
@@ -134,7 +132,6 @@ describe('sites token-router cache invalidation', () => {
     const after = await tokenRouter.explainSelection('gpt-4o-mini');
     const afterTarget = after.candidates.find((candidate) => candidate.accountId === targetAccount.id);
 
-    expect(afterTarget?.probability || 0).toBeGreaterThan(90);
-    expect(afterTarget?.reason || '').toContain('站点权重=100.00');
+    expect(afterTarget?.probability || 0).toBe(0);
   });
 });

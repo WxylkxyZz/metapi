@@ -46,7 +46,6 @@ type DownstreamApiKeyItem = {
   usedRequests: number;
   supportedModels: string[];
   allowedRouteIds: number[];
-  siteWeightMultipliers: Record<number, number>;
   excludedSiteIds: number[];
   excludedCredentialRefs: DownstreamExcludedCredentialRef[];
   lastUsedAt: string | null;
@@ -349,7 +348,6 @@ function buildEditorForm(
     enabled: item?.enabled ?? true,
     selectedModels: uniqStrings(selectedModels),
     selectedGroupRouteIds: uniqIds(selectedGroupRouteIds),
-    siteWeightMultipliersText: JSON.stringify(item?.siteWeightMultipliers || {}, null, 2),
     excludedSiteIds: normalizeExcludedSiteIds(Array.isArray(item?.excludedSiteIds) ? item.excludedSiteIds : []),
     excludedCredentialRefs: normalizeExcludedCredentialRefs(Array.isArray(item?.excludedCredentialRefs) ? item.excludedCredentialRefs : []),
   };
@@ -370,13 +368,6 @@ function summarizeRouteLimit(routeIds: number[], routeMap: Map<number, RouteSele
   if (names.length === 0) return `${routeIds.length} 个群组`;
   if (names.length === 1) return names[0];
   return `${names[0]} +${names.length - 1}`;
-}
-
-function summarizeSiteWeightMultipliers(weights: Record<number, number> | undefined): string {
-  const entries = Object.entries(weights || {});
-  if (entries.length === 0) return '默认倍率';
-  if (entries.length === 1) return `${entries[0][0]} => ${entries[0][1]}`;
-  return `${entries[0][0]} => ${entries[0][1]} +${entries.length - 1}`;
 }
 
 function summarizeTags(tags: string[]): string {
@@ -625,7 +616,6 @@ export default function DownstreamKeys() {
         usedRequests: raw?.usedRequests ?? item.usedRequests,
         supportedModels: raw?.supportedModels ?? item.supportedModels,
         allowedRouteIds: raw?.allowedRouteIds ?? item.allowedRouteIds,
-        siteWeightMultipliers: raw?.siteWeightMultipliers ?? item.siteWeightMultipliers,
         excludedSiteIds: raw?.excludedSiteIds ?? item.excludedSiteIds,
         excludedCredentialRefs: raw?.excludedCredentialRefs ?? item.excludedCredentialRefs,
         lastUsedAt: raw?.lastUsedAt ?? item.lastUsedAt,
@@ -801,26 +791,6 @@ export default function DownstreamKeys() {
       return;
     }
 
-    let siteWeightMultipliers: Record<number, number> = {};
-    const rawWeights = editorForm.siteWeightMultipliersText.trim();
-    if (rawWeights && rawWeights !== '{}') {
-      try {
-        const parsed = JSON.parse(rawWeights);
-        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-          toast.info('站点倍率必须是 JSON 对象');
-          return;
-        }
-        siteWeightMultipliers = Object.fromEntries(
-          Object.entries(parsed)
-            .map(([siteId, value]) => [Math.trunc(Number(siteId)), Number(value)])
-            .filter(([siteId, value]) => Number.isFinite(siteId) && siteId > 0 && Number.isFinite(value) && value > 0),
-        ) as Record<number, number>;
-      } catch {
-        toast.info('站点倍率 JSON 解析失败');
-        return;
-      }
-    }
-
     setSaving(true);
     try {
       const payload = {
@@ -835,7 +805,6 @@ export default function DownstreamKeys() {
         maxRequests: editorForm.maxRequests.trim() ? Number(editorForm.maxRequests.trim()) : null,
         supportedModels: uniqStrings(editorForm.selectedModels),
         allowedRouteIds: uniqIds(editorForm.selectedGroupRouteIds).filter((id) => routeMap.has(id) && isGroupRouteOption(routeMap.get(id)!)),
-        siteWeightMultipliers,
         excludedSiteIds: normalizeExcludedSiteIds(editorForm.excludedSiteIds),
         excludedCredentialRefs: normalizeExcludedCredentialRefs(editorForm.excludedCredentialRefs),
       };
@@ -1179,7 +1148,6 @@ export default function DownstreamKeys() {
                   <MobileField label="标签" value={summarizeTags(row.tags || [])} stacked />
                   <MobileField label="模型" value={summarizeModelLimit(row.supportedModels || [])} stacked />
                   <MobileField label="群组" value={summarizeRouteLimit(row.allowedRouteIds || [], routeMap)} stacked />
-                  <MobileField label="倍率" value={summarizeSiteWeightMultipliers(row.siteWeightMultipliers || {})} stacked />
                   <MobileField label="额度" value={`${row.maxRequests == null ? '不限' : row.maxRequests.toLocaleString()} / ${row.maxCost == null ? '成本不限' : formatMoney(row.maxCost)}`} stacked />
                   <MobileField label="用量" value={`${(row.rangeUsage?.totalRequests || 0).toLocaleString()} 请求 · ${formatCompactTokens(row.rangeUsage?.totalTokens || 0)}`} stacked />
                   <MobileField label="最近使用" value={formatIso(row.lastUsedAt)} stacked />
@@ -1236,7 +1204,6 @@ export default function DownstreamKeys() {
                           <div style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>模型：<span style={{ color: 'var(--color-text-primary)' }}>{summarizeModelLimit(row.supportedModels || [])}</span></div>
                           <div style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>群组：<span style={{ color: 'var(--color-text-primary)' }}>{summarizeRouteLimit(row.allowedRouteIds || [], routeMap)}</span></div>
                           <div style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>标签：<span style={{ color: 'var(--color-text-primary)' }}>{summarizeTags(row.tags || [])}</span></div>
-                          <div style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>倍率：<span style={{ color: 'var(--color-text-primary)' }}>{summarizeSiteWeightMultipliers(row.siteWeightMultipliers || {})}</span></div>
                         </div>
                       </td>
                       <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
@@ -1300,7 +1267,7 @@ export default function DownstreamKeys() {
         )}
       >
         <div className="info-tip" style={{ marginBottom: 0 }}>
-          本次会对已选中的 {selectedIds.length} 个密钥批量设置主分组，并追加标签。不会改动模型白名单、群组范围、额度和倍率。
+          本次会对已选中的 {selectedIds.length} 个密钥批量设置主分组，并追加标签。不会改动模型白名单、群组范围和额度。
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>

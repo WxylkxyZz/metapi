@@ -1376,7 +1376,7 @@ describe('gemini native proxy routes', () => {
       source: 'managed',
       token: 'sk-managed-gemini',
       key: { id: 91 },
-      policy: { supportedModels: ['gemini-2.5-flash'], allowedRouteIds: [], siteWeightMultipliers: {} },
+      policy: { supportedModels: ['gemini-2.5-flash'], allowedRouteIds: [] },
     });
     isModelAllowedByPolicyOrAllowedRoutesMock.mockImplementation(async (modelName: string) => modelName === 'gemini-2.5-flash');
     explainSelectionMock.mockImplementation(async (modelName: string) => (
@@ -1411,8 +1411,8 @@ describe('gemini native proxy routes', () => {
         },
       ],
     });
-    expect(isModelAllowedByPolicyOrAllowedRoutesMock).toHaveBeenCalledWith('gemini-2.5-flash', { supportedModels: ['gemini-2.5-flash'], allowedRouteIds: [], siteWeightMultipliers: {} });
-    expect(isModelAllowedByPolicyOrAllowedRoutesMock).toHaveBeenCalledWith('gemini-2.0-flash', { supportedModels: ['gemini-2.5-flash'], allowedRouteIds: [], siteWeightMultipliers: {} });
+    expect(isModelAllowedByPolicyOrAllowedRoutesMock).toHaveBeenCalledWith('gemini-2.5-flash', { supportedModels: ['gemini-2.5-flash'], allowedRouteIds: [] });
+    expect(isModelAllowedByPolicyOrAllowedRoutesMock).toHaveBeenCalledWith('gemini-2.0-flash', { supportedModels: ['gemini-2.5-flash'], allowedRouteIds: [] });
   });
 
   it('writes a proxy log row for successful native generateContent requests', async () => {

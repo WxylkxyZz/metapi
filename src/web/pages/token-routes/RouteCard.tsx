@@ -81,10 +81,13 @@ type RouteCardProps = {
   // Channel interaction
   candidateView: RouteCandidateView;
   channelTokenDraft: Record<number, number>;
+  channelWeightDraft: Record<number, string>;
   updatingChannel: Record<number, boolean>;
   savingPriority: boolean;
   onTokenDraftChange: (channelId: number, tokenId: number) => void;
+  onChannelWeightDraftChange: (updater: (prev: Record<number, string>) => Record<number, string>) => void;
   onSaveToken: (routeId: number, channelId: number, accountId: number) => void;
+  onSaveChannelWeight: (routeId: number, channelId: number) => void;
   onDeleteChannel: (channelId: number, routeId: number) => void;
   onToggleChannelEnabled: (channelId: number, routeId: number, enabled: boolean) => void;
   onChannelDragEnd: (routeId: number, event: DragEndEvent) => void;
@@ -362,6 +365,7 @@ type SortableChannelShellProps = {
   savingPriority: boolean;
   candidateView: RouteCandidateView;
   channelTokenDraft: Record<number, number>;
+  channelWeightDraft: Record<number, string>;
   updatingChannel: Record<number, boolean>;
   activeDragChannelId: number | null;
   decisionMap: Map<number, RouteDecisionCandidate>;
@@ -370,7 +374,9 @@ type SortableChannelShellProps = {
   channelManagementDisabled: boolean;
   routeId: number;
   onTokenDraftChange: (channelId: number, tokenId: number) => void;
+  onChannelWeightDraftChange: (updater: (prev: Record<number, string>) => Record<number, string>) => void;
   onSaveToken: (routeId: number, channelId: number, accountId: number) => void;
+  onSaveChannelWeight: (routeId: number, channelId: number) => void;
   onDeleteChannel: (channelId: number, routeId: number) => void;
   onToggleChannelEnabled: (channelId: number, routeId: number, enabled: boolean) => void;
   onSiteBlockModel: (channelId: number, routeId: number) => void;
@@ -392,6 +398,7 @@ function SortableChannelShell({
   savingPriority,
   candidateView,
   channelTokenDraft,
+  channelWeightDraft,
   updatingChannel,
   activeDragChannelId,
   decisionMap,
@@ -400,7 +407,9 @@ function SortableChannelShell({
   channelManagementDisabled,
   routeId,
   onTokenDraftChange,
+  onChannelWeightDraftChange,
   onSaveToken,
+  onSaveChannelWeight,
   onDeleteChannel,
   onToggleChannelEnabled,
   onSiteBlockModel,
@@ -523,8 +532,11 @@ function SortableChannelShell({
         tokenOptions={tokenOptions}
         activeTokenId={activeTokenId}
         isUpdatingToken={!!updatingChannel[channel.id]}
+        channelWeightDraft={channelWeightDraft}
         onTokenDraftChange={onTokenDraftChange}
+        onChannelWeightDraftChange={onChannelWeightDraftChange}
         onSaveToken={() => onSaveToken(routeId, channel.id, channel.accountId)}
+        onSaveChannelWeight={() => onSaveChannelWeight(routeId, channel.id)}
         onDeleteChannel={() => onDeleteChannel(channel.id, routeId)}
         onToggleEnabled={(enabled) => onToggleChannelEnabled(channel.id, routeId, enabled)}
         onSiteBlockModel={channelManagementDisabled ? undefined : () => onSiteBlockModel(channel.id, routeId)}
@@ -554,10 +566,13 @@ function RouteCardInner({
   loadingDecision,
   candidateView,
   channelTokenDraft,
+  channelWeightDraft,
   updatingChannel,
   savingPriority,
   onTokenDraftChange,
+  onChannelWeightDraftChange,
   onSaveToken,
+  onSaveChannelWeight,
   onDeleteChannel,
   onToggleChannelEnabled,
   onChannelDragEnd,
@@ -1200,6 +1215,7 @@ function RouteCardInner({
                             savingPriority={savingPriority}
                             candidateView={candidateView}
                             channelTokenDraft={channelTokenDraft}
+                            channelWeightDraft={channelWeightDraft}
                             updatingChannel={updatingChannel}
                             activeDragChannelId={activeDragChannelId}
                             decisionMap={decisionMap}
@@ -1208,7 +1224,9 @@ function RouteCardInner({
                             channelManagementDisabled={channelManagementDisabled}
                             routeId={route.id}
                             onTokenDraftChange={onTokenDraftChange}
+                            onChannelWeightDraftChange={onChannelWeightDraftChange}
                             onSaveToken={onSaveToken}
+                            onSaveChannelWeight={onSaveChannelWeight}
                             onDeleteChannel={onDeleteChannel}
                             onToggleChannelEnabled={onToggleChannelEnabled}
                             onSiteBlockModel={onSiteBlockModel}
@@ -1258,11 +1276,12 @@ function RouteCardInner({
 function buildChannelInteractionSignature(
   channels: RouteChannel[] | undefined,
   channelTokenDraft: Record<number, number>,
+  channelWeightDraft: Record<number, string>,
   updatingChannel: Record<number, boolean>,
 ): string {
   if (!Array.isArray(channels) || channels.length === 0) return '';
   return channels
-    .map((channel) => `${channel.id}:${channelTokenDraft[channel.id] ?? ''}:${updatingChannel[channel.id] ? 1 : 0}`)
+    .map((channel) => `${channel.id}:${channelTokenDraft[channel.id] ?? ''}:${channelWeightDraft[channel.id] ?? ''}:${updatingChannel[channel.id] ? 1 : 0}`)
     .join('|');
 }
 
@@ -1290,7 +1309,9 @@ function areRouteCardPropsEqual(prev: RouteCardProps, next: RouteCardProps): boo
     || prev.onClearCooldown !== next.onClearCooldown
     || prev.onRoutingStrategyChange !== next.onRoutingStrategyChange
     || prev.onTokenDraftChange !== next.onTokenDraftChange
+    || prev.onChannelWeightDraftChange !== next.onChannelWeightDraftChange
     || prev.onSaveToken !== next.onSaveToken
+    || prev.onSaveChannelWeight !== next.onSaveChannelWeight
     || prev.onDeleteChannel !== next.onDeleteChannel
     || prev.onToggleChannelEnabled !== next.onToggleChannelEnabled
     || prev.onChannelDragEnd !== next.onChannelDragEnd
@@ -1312,8 +1333,8 @@ function areRouteCardPropsEqual(prev: RouteCardProps, next: RouteCardProps): boo
     return false;
   }
 
-  return buildChannelInteractionSignature(prev.channels, prev.channelTokenDraft, prev.updatingChannel)
-    === buildChannelInteractionSignature(next.channels, next.channelTokenDraft, next.updatingChannel);
+  return buildChannelInteractionSignature(prev.channels, prev.channelTokenDraft, prev.channelWeightDraft, prev.updatingChannel)
+    === buildChannelInteractionSignature(next.channels, next.channelTokenDraft, next.channelWeightDraft, next.updatingChannel);
 }
 
 const RouteCard = memo(RouteCardInner, areRouteCardPropsEqual);

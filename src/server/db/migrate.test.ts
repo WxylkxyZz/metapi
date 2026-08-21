@@ -19,6 +19,13 @@ function readMigrationJournalEntries(): MigrationJournalEntry[] {
   return journal.entries ?? [];
 }
 
+// 0027 drops columns (non-idempotent). Fixtures that pre-build the schema up to a
+// point must stop before it and let migrate apply the drop itself, otherwise the
+// drop gets replayed on an already-dropped schema.
+function additiveJournalEntries(): MigrationJournalEntry[] {
+  return readMigrationJournalEntries().filter((entry) => entry.tag !== '0027_drop_site_weight_chain');
+}
+
 function applyMigrationSql(sqlite: Database.Database, sqlText: string) {
   const statements = sqlText
     .split('--> statement-breakpoint')
@@ -63,7 +70,7 @@ describe('sqlite migrate bootstrap', () => {
     const dataDir = mkdtempSync(join(tmpdir(), 'metapi-migrate-'));
     const dbPath = join(dataDir, 'hub.db');
     const sqlite = new Database(dbPath);
-    const journalEntries = readMigrationJournalEntries();
+    const journalEntries = additiveJournalEntries();
 
     for (const entry of journalEntries) {
       const sqlText = readFileSync(join(migrationsDir, `${entry.tag}.sql`), 'utf8');
@@ -85,7 +92,7 @@ describe('sqlite migrate bootstrap', () => {
       .all() as Array<{ created_at: number }>;
 
     expect(appliedRows.map((row) => Number(row.created_at))).toEqual(
-      journalEntries.map((entry) => entry.when),
+      readMigrationJournalEntries().map((entry) => entry.when),
     );
 
     verified.close();
@@ -374,7 +381,7 @@ describe('sqlite migrate bootstrap', () => {
     const dataDir = mkdtempSync(join(tmpdir(), 'metapi-migrate-partial-journal-'));
     const dbPath = join(dataDir, 'hub.db');
     const sqlite = new Database(dbPath);
-    const journalEntries = readMigrationJournalEntries();
+    const journalEntries = additiveJournalEntries();
     const missingTags = new Set([
       '0006_site_disabled_models',
       '0007_account_token_group',
@@ -421,7 +428,7 @@ describe('sqlite migrate bootstrap', () => {
     expect(disabledModelsTable?.name).toBe('site_disabled_models');
     expect(downstreamApiKeysTable?.name).toBe('downstream_api_keys');
     expect(appliedRows.map((row) => Number(row.created_at))).toEqual(
-      journalEntries.map((entry) => entry.when),
+      readMigrationJournalEntries().map((entry) => entry.when),
     );
 
     verified.close();
@@ -431,7 +438,7 @@ describe('sqlite migrate bootstrap', () => {
     const dataDir = mkdtempSync(join(tmpdir(), 'metapi-migrate-legacy-schema-'));
     const dbPath = join(dataDir, 'hub.db');
     const sqlite = new Database(dbPath);
-    const journalEntries = readMigrationJournalEntries();
+    const journalEntries = additiveJournalEntries();
     const appliedEntries = journalEntries.filter((entry) => entry.tag !== '0019_proxy_logs_stream_timing');
 
     for (const entry of appliedEntries) {
@@ -460,7 +467,7 @@ describe('sqlite migrate bootstrap', () => {
       .all() as Array<{ name: string }>;
 
     expect(appliedRows.map((row) => Number(row.created_at))).toEqual(
-      journalEntries.map((entry) => entry.when),
+      readMigrationJournalEntries().map((entry) => entry.when),
     );
     expect(proxyLogColumns.some((column) => column.name === 'is_stream')).toBe(true);
     expect(proxyLogColumns.some((column) => column.name === 'first_byte_latency_ms')).toBe(true);
@@ -472,7 +479,7 @@ describe('sqlite migrate bootstrap', () => {
     const dataDir = mkdtempSync(join(tmpdir(), 'metapi-migrate-stale-timestamp-'));
     const dbPath = join(dataDir, 'hub.db');
     const sqlite = new Database(dbPath);
-    const journalEntries = readMigrationJournalEntries();
+    const journalEntries = additiveJournalEntries();
 
     for (const entry of journalEntries) {
       const sqlText = readFileSync(join(migrationsDir, `${entry.tag}.sql`), 'utf8');
@@ -512,7 +519,7 @@ describe('sqlite migrate bootstrap', () => {
     const dataDir = mkdtempSync(join(tmpdir(), 'metapi-migrate-duplicate-sites-'));
     const dbPath = join(dataDir, 'hub.db');
     const sqlite = new Database(dbPath);
-    const journalEntries = readMigrationJournalEntries();
+    const journalEntries = additiveJournalEntries();
     const appliedEntries = journalEntries.filter((entry) => entry.tag !== '0013_oauth_multi_provider');
 
     for (const entry of appliedEntries) {
@@ -522,10 +529,10 @@ describe('sqlite migrate bootstrap', () => {
     recordAppliedMigrations(sqlite, appliedEntries);
 
     sqlite.exec(`
-      INSERT INTO sites (id, name, url, platform, status, is_pinned, sort_order, global_weight)
+      INSERT INTO sites (id, name, url, platform, status, is_pinned, sort_order)
       VALUES
-        (101, 'Primary Codex', 'https://chatgpt.com/backend-api/codex', 'codex', 'active', 0, 0, 1),
-        (202, 'Duplicate Codex', 'https://chatgpt.com/backend-api/codex', 'codex', 'disabled', 1, 9, 3);
+        (101, 'Primary Codex', 'https://chatgpt.com/backend-api/codex', 'codex', 'active', 0, 0),
+        (202, 'Duplicate Codex', 'https://chatgpt.com/backend-api/codex', 'codex', 'disabled', 1, 9);
 
       INSERT INTO accounts (site_id, username, access_token, status, checkin_enabled)
       VALUES
@@ -550,7 +557,7 @@ describe('sqlite migrate bootstrap', () => {
 
     const verified = new Database(dbPath, { readonly: true });
     const sites = verified
-      .prepare('SELECT id, name, url, platform, status, is_pinned, sort_order, global_weight FROM sites ORDER BY id ASC')
+      .prepare('SELECT id, name, url, platform, status, is_pinned, sort_order FROM sites ORDER BY id ASC')
       .all() as Array<{
       id: number;
       name: string;
@@ -559,7 +566,6 @@ describe('sqlite migrate bootstrap', () => {
       status: string;
       is_pinned: number;
       sort_order: number;
-      global_weight: number;
     }>;
     const accounts = verified
       .prepare('SELECT username, site_id FROM accounts ORDER BY username ASC')

@@ -484,12 +484,6 @@
           "defaultValue": null,
           "primaryKey": false
         },
-        "site_weight_multipliers": {
-          "logicalType": "json",
-          "notNull": false,
-          "defaultValue": null,
-          "primaryKey": false
-        },
         "last_used_at": {
           "logicalType": "datetime",
           "notNull": false,
@@ -2082,12 +2076,6 @@
           "logicalType": "text",
           "notNull": false,
           "defaultValue": null,
-          "primaryKey": false
-        },
-        "global_weight": {
-          "logicalType": "real",
-          "notNull": false,
-          "defaultValue": "1",
           "primaryKey": false
         },
         "post_refresh_probe_enabled": {

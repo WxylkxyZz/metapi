@@ -4058,7 +4058,6 @@ describe('oauth routes', { timeout: 15_000 }, () => {
       status: 'active',
       useSystemProxy: false,
       isPinned: false,
-      globalWeight: 1,
       sortOrder: 0,
     }).returning().get();
 

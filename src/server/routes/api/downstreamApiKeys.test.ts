@@ -80,7 +80,6 @@ describe('downstream api keys routes', () => {
         maxRequests: 500,
         supportedModels: ['gpt-5.2', 'claude-sonnet-4-5'],
         allowedRouteIds: [route.id],
-        siteWeightMultipliers: { [site.id]: 1.2 },
       },
     });
 
@@ -885,7 +884,6 @@ describe('downstream api keys routes', () => {
         name: 'valid-policy',
         key: 'sk-valid-policy-001',
         allowedRouteIds: [route.id],
-        siteWeightMultipliers: { [site.id]: 1.2 },
       },
     });
     expect(created.statusCode).toBe(200);
@@ -895,7 +893,7 @@ describe('downstream api keys routes', () => {
       method: 'PUT',
       url: `/api/downstream-keys/${keyId}`,
       payload: {
-        siteWeightMultipliers: { 999: 1.5 },
+        excludedSiteIds: [999],
       },
     });
     expect(updateRes.statusCode).toBe(400);

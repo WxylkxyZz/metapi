@@ -3676,19 +3676,6 @@ export class TokenRouter {
       }
 
       let contribution = baseContributions[i] / siteChannels;
-      const downstreamSiteMultiplier = downstreamPolicy.siteWeightMultipliers[candidate.site.id] ?? 1;
-      const normalizedDownstreamSiteMultiplier =
-        (Number.isFinite(downstreamSiteMultiplier) && downstreamSiteMultiplier > 0)
-          ? downstreamSiteMultiplier
-          : 1;
-      const siteGlobalWeight =
-        (Number.isFinite(candidate.site.globalWeight) && (candidate.site.globalWeight || 0) > 0)
-          ? (candidate.site.globalWeight as number)
-          : 1;
-      const combinedSiteWeight = siteGlobalWeight * normalizedDownstreamSiteMultiplier;
-      if (combinedSiteWeight > 0 && Number.isFinite(combinedSiteWeight)) {
-        contribution *= combinedSiteWeight;
-      }
 
       contribution *= runtimeMultiplier;
       contribution *= siteHistoricalHealthMetrics.get(candidate.site.id)?.multiplier ?? 1;
@@ -3728,16 +3715,6 @@ export class TokenRouter {
         ? '实测'
         : (cost?.source === 'configured' ? '配置' : (cost?.source === 'catalog' ? '目录' : '默认'));
       const siteChannels = Math.max(1, siteChannelCounts.get(candidate.site.id) || 1);
-      const downstreamSiteMultiplier = downstreamPolicy.siteWeightMultipliers[candidate.site.id] ?? 1;
-      const normalizedDownstreamSiteMultiplier =
-        (Number.isFinite(downstreamSiteMultiplier) && downstreamSiteMultiplier > 0)
-          ? downstreamSiteMultiplier
-          : 1;
-      const siteGlobalWeight =
-        (Number.isFinite(candidate.site.globalWeight) && (candidate.site.globalWeight || 0) > 0)
-          ? (candidate.site.globalWeight as number)
-          : 1;
-      const combinedSiteWeight = siteGlobalWeight * normalizedDownstreamSiteMultiplier;
       const siteRuntimeDetail = runtimeHealthDetails[i];
       const siteHistoricalHealth = siteHistoricalHealthMetrics.get(candidate.site.id);
       const siteHistoricalMultiplier = siteHistoricalHealth?.multiplier ?? 1;
@@ -3777,8 +3754,8 @@ export class TokenRouter {
           ? `${reasonPrefix}，近期成功率=${recentSuccessRateText}（样本=${siteRuntimeDetail.recentSampleCount.toFixed(2)}，置信=${siteRuntimeDetail.recentConfidence.toFixed(2)}），回退成功率=${historicalSuccessRateText}，综合近期成功率=${stableFirstSuccessRateText}，运行时健康=${runtimeHealthText}，会话负载=${runtimeLoadText}，同站点通道=${siteChannels}${stablePoolText}，评分占比≈${(probability * 100).toFixed(1)}%）`
           : (
             candidates.length === 1
-              ? `${reasonPrefix}，W=${weight}，成本=${costSourceText}:${(cost?.unitCost || 1).toFixed(6)}，站点权重=${siteGlobalWeight.toFixed(2)}x下游倍率=${normalizedDownstreamSiteMultiplier.toFixed(2)}=${combinedSiteWeight.toFixed(2)}，运行时健康=${runtimeHealthText}，会话负载=${runtimeLoadText}，历史健康=${siteHistoricalMultiplier.toFixed(2)}（成功率=${historicalSuccessRateText}，均延迟=${historicalLatencyText}，样本=${siteHistoricalHealth?.totalCalls ?? 0}），同站点通道=${siteChannels}，概率≈${(probability * 100).toFixed(1)}%）`
-              : `按权重随机（W=${weight}，成本=${costSourceText}:${(cost?.unitCost || 1).toFixed(6)}，站点权重=${siteGlobalWeight.toFixed(2)}x下游倍率=${normalizedDownstreamSiteMultiplier.toFixed(2)}=${combinedSiteWeight.toFixed(2)}，运行时健康=${runtimeHealthText}，会话负载=${runtimeLoadText}，历史健康=${siteHistoricalMultiplier.toFixed(2)}（成功率=${historicalSuccessRateText}，均延迟=${historicalLatencyText}，样本=${siteHistoricalHealth?.totalCalls ?? 0}），同站点通道=${siteChannels}，概率≈${(probability * 100).toFixed(1)}%）`
+              ? `${reasonPrefix}，W=${weight}，成本=${costSourceText}:${(cost?.unitCost || 1).toFixed(6)}，运行时健康=${runtimeHealthText}，会话负载=${runtimeLoadText}，历史健康=${siteHistoricalMultiplier.toFixed(2)}（成功率=${historicalSuccessRateText}，均延迟=${historicalLatencyText}，样本=${siteHistoricalHealth?.totalCalls ?? 0}），同站点通道=${siteChannels}，概率≈${(probability * 100).toFixed(1)}%）`
+              : `按权重随机（W=${weight}，成本=${costSourceText}:${(cost?.unitCost || 1).toFixed(6)}，运行时健康=${runtimeHealthText}，会话负载=${runtimeLoadText}，历史健康=${siteHistoricalMultiplier.toFixed(2)}（成功率=${historicalSuccessRateText}，均延迟=${historicalLatencyText}，样本=${siteHistoricalHealth?.totalCalls ?? 0}），同站点通道=${siteChannels}，概率≈${(probability * 100).toFixed(1)}%）`
           ),
       };
     });

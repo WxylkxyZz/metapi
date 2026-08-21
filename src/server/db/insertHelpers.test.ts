@@ -59,7 +59,6 @@ describe('insert helpers', () => {
         status: 'active',
         useSystemProxy: false,
         isPinned: false,
-        globalWeight: 1,
         sortOrder: 0,
       },
       insertErrorMessage: 'insert site failed',
