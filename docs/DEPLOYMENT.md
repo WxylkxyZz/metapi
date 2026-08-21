@@ -202,6 +202,49 @@ docker pull ghcr.io/WxylkxyZz/Canopy:v1.0.2
 docker pull ghcr.io/WxylkxyZz/Canopy:latest
 ```
 
+### 更新 / 升级实例
+
+新版本发布后，拉取新 tag（或 `latest`）并重建容器即可。**数据全部在数据卷（`./data:/app/data`）中，升级不丢数据**；Schema 变更通过启动时自动应用迁移（Drizzle + 兼容补列），无需手动执行 SQL。
+
+> ⚠️ 升级前建议先备份数据卷，尤其是跨大版本时：
+>
+> ```bash
+> docker compose stop
+> tar -czf canopy-data-backup-$(date +%Y%m%d).tar.gz data/
+> ```
+
+使用 compose：
+
+```bash
+docker compose -f docker/docker-compose.yml pull canopy   # 拉取新镜像
+docker compose -f docker/docker-compose.yml up -d canopy  # 重建并重启
+docker compose logs -f canopy                             # 查看启动日志，确认迁移正常
+```
+
+> 若你的 compose 用了 `docker-compose.override.yml`（本地构建），`pull` 会被覆盖行为取代，改用 `--build`：
+>
+> ```bash
+> docker compose -f docker/docker-compose.yml -f docker/docker-compose.override.yml up -d --build
+> ```
+
+直接用 docker run：
+
+```bash
+docker rm -f canopy   # 停止并删除旧容器（数据卷不删）
+docker run -d --name canopy \
+  -p 127.0.0.1:4000:4000 \
+  -e AUTH_TOKEN=... -e PROXY_TOKEN=... -e ACCOUNT_CREDENTIAL_SECRET=... -e TZ=Asia/Shanghai \
+  -v /opt/canopy/data:/app/data \
+  --restart unless-stopped \
+  your-registry/canopy:v1.0.2   # 换成新版本 tag
+```
+
+**回滚**：启动失败或遇到问题时，改用上一个版本 tag 重新启动即可（数据卷不变）：
+
+```bash
+docker compose -f docker/docker-compose.yml up -d canopy   # 用旧 tag 覆写镜像版本
+```
+
 ## 五、Docker 部署（推荐）
 
 ### 使用 compose（已提供现成文件）
