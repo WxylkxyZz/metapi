@@ -29,7 +29,6 @@ export type DownstreamKeyEditorForm = {
   enabled: boolean;
   selectedModels: string[];
   selectedGroupRouteIds: number[];
-  siteWeightMultipliersText: string;
   excludedSiteIds: number[];
   excludedCredentialRefs: DownstreamExcludedCredentialRef[];
 };
@@ -450,17 +449,6 @@ export default function DownstreamKeyEditorModal({
         </button>
         {advancedOpen ? (
           <div className="downstream-key-advanced-content">
-            <div className="downstream-key-modal-field downstream-key-modal-field-full">
-              <div className="downstream-key-modal-label">站点倍率 JSON</div>
-              <textarea
-                value={form.siteWeightMultipliersText}
-                onChange={(e) => onChange((prev) => ({ ...prev, siteWeightMultipliersText: e.target.value }))}
-                placeholder={'例如：{\n  "1": 1.2,\n  "7": 0.8\n}'}
-                style={{ ...inputStyle, minHeight: 96, resize: 'vertical', fontFamily: 'var(--font-mono)' }}
-              />
-              <div className="downstream-key-modal-help">用于对特定站点做分发倍率微调；留空或 `{}` 表示走默认倍率。</div>
-            </div>
-
             <div className="downstream-key-advanced-grid" style={{ gridTemplateColumns: '1fr' }}>
               <div className="downstream-key-advanced-panel">
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>

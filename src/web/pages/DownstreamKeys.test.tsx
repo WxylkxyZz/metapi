@@ -87,7 +87,6 @@ function buildSummaryItem(overrides?: Partial<any>) {
     usedRequests: 0,
     supportedModels: ['gpt-4.1-mini'],
     allowedRouteIds: [11],
-    siteWeightMultipliers: {},
     lastUsedAt: '2026-03-15T08:27:25.378Z',
     createdAt: '2026-03-15T08:27:25.378Z',
     updatedAt: '2026-03-15T08:27:25.378Z',
@@ -120,7 +119,6 @@ function buildRawItem(overrides?: Partial<any>) {
     usedRequests: 0,
     supportedModels: ['gpt-4.1-mini'],
     allowedRouteIds: [11],
-    siteWeightMultipliers: {},
     lastUsedAt: '2026-03-15T08:27:25.378Z',
     ...overrides,
   };
@@ -338,8 +336,7 @@ describe('DownstreamKeys page', () => {
       expect(apiMock.createDownstreamApiKey).toHaveBeenCalledWith(expect.objectContaining({
         name: 'new-key',
         key: 'sk-new-key-0315',
-        siteWeightMultipliers: {},
-      }));
+          }));
 
       const row = root!.root.findAll((node) => node.type === 'tr' && typeof node.props.onClick === 'function')[0];
       await act(async () => {

@@ -408,7 +408,6 @@ describe('responses websocket transport', () => {
       policy: {
         supportedModels: [],
         allowedRouteIds: [],
-        siteWeightMultipliers: {},
       },
     });
     upstreamMessageHandler = (socket, parsed, requestIndex) => {
@@ -1395,7 +1394,6 @@ describe('responses websocket transport', () => {
       policy: {
         supportedModels: [],
         allowedRouteIds: [],
-        siteWeightMultipliers: {},
       },
     });
     fetchMock.mockResolvedValueOnce(createSseResponse([
@@ -1433,7 +1431,6 @@ describe('responses websocket transport', () => {
       policy: {
         supportedModels: ['gpt-4.1'],
         allowedRouteIds: [],
-        siteWeightMultipliers: {},
       },
     });
 

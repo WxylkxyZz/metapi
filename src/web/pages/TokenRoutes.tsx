@@ -208,6 +208,7 @@ export default function TokenRoutes() {
   const [selectedRouteIds, setSelectedRouteIds] = useState<Set<number>>(new Set());
 
   const [channelTokenDraft, setChannelTokenDraft] = useState<Record<number, number>>({});
+  const [channelWeightDraft, setChannelWeightDraft] = useState<Record<number, string>>({});
   const [updatingChannel, setUpdatingChannel] = useState<Record<number, boolean>>({});
   const [savingPriorityByRoute, setSavingPriorityByRoute] = useState<Record<number, boolean>>({});
   const [updatingRoutingStrategyByRoute, setUpdatingRoutingStrategyByRoute] = useState<Record<number, boolean>>({});
@@ -1123,6 +1124,32 @@ export default function TokenRoutes() {
     }
   };
 
+  const handleChannelWeightSave = async (routeId: number, channelId: number) => {
+    const raw = channelWeightDraft[channelId]?.trim();
+    if (!raw) {
+      setChannelWeightDraft((prev) => { const next = { ...prev }; delete next[channelId]; return next; });
+      return;
+    }
+    const parsed = Number(raw);
+    if (!Number.isInteger(parsed) || parsed <= 0) {
+      toast.error('通道权重必须是大于 0 的整数');
+      return;
+    }
+    const weight = parsed;
+
+    setUpdatingChannel((prev) => ({ ...prev, [channelId]: true }));
+    try {
+      await api.updateChannel(channelId, { weight });
+      toast.success('通道权重已更新');
+      setChannelWeightDraft((prev) => { const next = { ...prev }; delete next[channelId]; return next; });
+      await loadChannels(routeId, true);
+    } catch (e: any) {
+      toast.error(e.message || '更新权重失败');
+    } finally {
+      setUpdatingChannel((prev) => ({ ...prev, [channelId]: false }));
+    }
+  };
+
   const handleChannelDragEnd = async (routeId: number, event: DragEndEvent) => {
     if (savingPriorityByRoute[routeId]) return;
 
@@ -1461,6 +1488,12 @@ export default function TokenRoutes() {
   handleChannelTokenSaveRef.current = handleChannelTokenSave;
   const stableChannelTokenSave = useCallback(
     (routeId: number, channelId: number, accountId: number) => handleChannelTokenSaveRef.current(routeId, channelId, accountId),
+    [],
+  );
+  const handleChannelWeightSaveRef = useRef(handleChannelWeightSave);
+  handleChannelWeightSaveRef.current = handleChannelWeightSave;
+  const stableChannelWeightSave = useCallback(
+    (routeId: number, channelId: number) => handleChannelWeightSaveRef.current(routeId, channelId),
     [],
   );
   const handleDeleteChannelRef = useRef(handleDeleteChannel);
@@ -1850,10 +1883,13 @@ export default function TokenRoutes() {
                     loadingDecision={loadingDecision}
                     candidateView={getRouteCandidateView(route.id)}
                     channelTokenDraft={channelTokenDraft}
+                    channelWeightDraft={channelWeightDraft}
                     updatingChannel={updatingChannel}
                     savingPriority={!!savingPriorityByRoute[route.id]}
                     onTokenDraftChange={stableTokenDraftChange}
+                    onChannelWeightDraftChange={setChannelWeightDraft}
                     onSaveToken={stableChannelTokenSave}
+                    onSaveChannelWeight={stableChannelWeightSave}
                     onDeleteChannel={stableDeleteChannel}
                     onToggleChannelEnabled={stableToggleChannelEnabled}
                     onChannelDragEnd={stableChannelDragEnd}
@@ -1890,10 +1926,13 @@ export default function TokenRoutes() {
               loadingDecision={loadingDecision}
               candidateView={EMPTY_ROUTE_CANDIDATE_VIEW}
               channelTokenDraft={channelTokenDraft}
+              channelWeightDraft={channelWeightDraft}
               updatingChannel={updatingChannel}
               savingPriority={!!savingPriorityByRoute[route.id]}
               onTokenDraftChange={stableTokenDraftChange}
+              onChannelWeightDraftChange={setChannelWeightDraft}
               onSaveToken={stableChannelTokenSave}
+              onSaveChannelWeight={stableChannelWeightSave}
               onDeleteChannel={stableDeleteChannel}
               onToggleChannelEnabled={stableToggleChannelEnabled}
               onChannelDragEnd={stableChannelDragEnd}
@@ -1929,10 +1968,13 @@ export default function TokenRoutes() {
                   loadingDecision={loadingDecision}
                   candidateView={getRouteCandidateView(route.id)}
                   channelTokenDraft={channelTokenDraft}
+                  channelWeightDraft={channelWeightDraft}
                   updatingChannel={updatingChannel}
                   savingPriority={!!savingPriorityByRoute[route.id]}
                   onTokenDraftChange={stableTokenDraftChange}
+                  onChannelWeightDraftChange={setChannelWeightDraft}
                   onSaveToken={stableChannelTokenSave}
+                  onSaveChannelWeight={stableChannelWeightSave}
                   onDeleteChannel={stableDeleteChannel}
                   onToggleChannelEnabled={stableToggleChannelEnabled}
                   onChannelDragEnd={stableChannelDragEnd}

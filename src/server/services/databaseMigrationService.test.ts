@@ -377,7 +377,6 @@ describe('databaseMigrationService', () => {
           key: 'mk-demo',
           supportedModels: ['gpt-4o-mini'],
           allowedRouteIds: [3],
-          siteWeightMultipliers: { 1: 1.5 },
           excludedSiteIds: [1],
           excludedCredentialRefs: [{ kind: 'default_api_key', siteId: 1, accountId: 2 }],
           enabled: true,
@@ -405,7 +404,6 @@ describe('databaseMigrationService', () => {
     expect(proxyVideoStatement?.values[proxyVideoStatement.columns.indexOf('upstream_response_meta')]).toBe('{"id":"video"}');
     expect(downstreamKeyStatement?.values[downstreamKeyStatement.columns.indexOf('supported_models')]).toBe('["gpt-4o-mini"]');
     expect(downstreamKeyStatement?.values[downstreamKeyStatement.columns.indexOf('allowed_route_ids')]).toBe('[3]');
-    expect(downstreamKeyStatement?.values[downstreamKeyStatement.columns.indexOf('site_weight_multipliers')]).toBe('{"1":1.5}');
     expect(downstreamKeyStatement?.values[downstreamKeyStatement.columns.indexOf('excluded_site_ids')]).toBe('[1]');
     expect(downstreamKeyStatement?.values[downstreamKeyStatement.columns.indexOf('excluded_credential_refs')]).toBe('[{"kind":"default_api_key","siteId":1,"accountId":2}]');
   });
@@ -478,7 +476,6 @@ describe('databaseMigrationService', () => {
           enabled: true,
           supportedModels: ['gpt-5', 'gpt-5-mini'],
           allowedRouteIds: [10, 11],
-          siteWeightMultipliers: { 1: 2, 2: 0.5 },
         }],
         events: [],
       },
@@ -507,7 +504,6 @@ describe('databaseMigrationService', () => {
     const downstreamApiKeysStatement = statements.find((statement) => statement.table === 'downstream_api_keys');
     expect(downstreamApiKeysStatement?.values[downstreamApiKeysStatement.columns.indexOf('supported_models')]).toBe('["gpt-5","gpt-5-mini"]');
     expect(downstreamApiKeysStatement?.values[downstreamApiKeysStatement.columns.indexOf('allowed_route_ids')]).toBe('[10,11]');
-    expect(downstreamApiKeysStatement?.values[downstreamApiKeysStatement.columns.indexOf('site_weight_multipliers')]).toBe('{"1":2,"2":0.5}');
   });
 
   it('serializes JSON logical-type columns from object and array values', () => {
@@ -570,7 +566,6 @@ describe('databaseMigrationService', () => {
           key: 'sk-managed',
           supportedModels: ['gpt-4.1', 'gpt-4o'],
           allowedRouteIds: [3, 8],
-          siteWeightMultipliers: { 1: 2 },
           enabled: true,
         }],
         events: [],
@@ -596,7 +591,6 @@ describe('databaseMigrationService', () => {
     expect(videoStatement?.values[videoStatement.columns.indexOf('upstream_response_meta')]).toBe('{"id":"video"}');
     expect(downstreamKeyStatement?.values[downstreamKeyStatement.columns.indexOf('supported_models')]).toBe('["gpt-4.1","gpt-4o"]');
     expect(downstreamKeyStatement?.values[downstreamKeyStatement.columns.indexOf('allowed_route_ids')]).toBe('[3,8]');
-    expect(downstreamKeyStatement?.values[downstreamKeyStatement.columns.indexOf('site_weight_multipliers')]).toBe('{"1":2}');
   });
 
   it('serializes JSON logical-type columns from parsed objects and arrays', () => {
@@ -655,7 +649,6 @@ describe('databaseMigrationService', () => {
           key: 'sk-managed',
           supportedModels: ['gpt-4.1', 'gpt-4o-mini'],
           allowedRouteIds: [3],
-          siteWeightMultipliers: { 1: 1.5 },
         }],
         events: [],
       },
@@ -680,7 +673,6 @@ describe('databaseMigrationService', () => {
     expect(proxyVideoStatement?.values[proxyVideoStatement.columns.indexOf('upstream_response_meta')]).toBe('{"id":"video-1"}');
     expect(downstreamStatement?.values[downstreamStatement.columns.indexOf('supported_models')]).toBe('["gpt-4.1","gpt-4o-mini"]');
     expect(downstreamStatement?.values[downstreamStatement.columns.indexOf('allowed_route_ids')]).toBe('[3]');
-    expect(downstreamStatement?.values[downstreamStatement.columns.indexOf('site_weight_multipliers')]).toBe('{"1":1.5}');
   });
 
   it('serializes JSON logical-type columns without coercing objects to [object Object]', () => {
@@ -742,7 +734,6 @@ describe('databaseMigrationService', () => {
           key: 'key-1',
           supportedModels: ['gpt-4.1'],
           allowedRouteIds: [3],
-          siteWeightMultipliers: { 1: 2 },
           enabled: true,
         }],
         events: [],
@@ -768,7 +759,6 @@ describe('databaseMigrationService', () => {
     expect(proxyVideoTasksStatement?.values[proxyVideoTasksStatement.columns.indexOf('upstream_response_meta')]).toBe('{"id":"video"}');
     expect(downstreamKeysStatement?.values[downstreamKeysStatement.columns.indexOf('supported_models')]).toBe('["gpt-4.1"]');
     expect(downstreamKeysStatement?.values[downstreamKeysStatement.columns.indexOf('allowed_route_ids')]).toBe('[3]');
-    expect(downstreamKeysStatement?.values[downstreamKeysStatement.columns.indexOf('site_weight_multipliers')]).toBe('{"1":2}');
   });
 
   it('includes disabled models, proxy video tasks, and proxy files in migration statements', () => {

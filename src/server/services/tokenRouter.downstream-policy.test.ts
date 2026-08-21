@@ -89,12 +89,10 @@ describe('TokenRouter downstream policy', () => {
     const allowedPick = await router.selectChannel('claude-opus-4-6', {
       allowedRouteIds: [routeAllowed.id],
       supportedModels: [],
-      siteWeightMultipliers: {},
     });
     const blockedPick = await router.selectChannel('gpt-4o-mini', {
       allowedRouteIds: [routeAllowed.id],
       supportedModels: [],
-      siteWeightMultipliers: {},
     });
 
     expect(allowedPick).toBeTruthy();
@@ -136,176 +134,10 @@ describe('TokenRouter downstream policy', () => {
     const deniedPick = await router.selectChannel('gpt-4o-mini', {
       allowedRouteIds: [],
       supportedModels: [],
-      siteWeightMultipliers: {},
       denyAllWhenEmpty: true,
     });
 
     expect(deniedPick).toBeNull();
-  });
-
-  it('applies site weight multipliers to probability explanation', async () => {
-    const siteHigh = await db.insert(schema.sites).values({
-      name: 'high-site',
-      url: 'https://high.example.com',
-      platform: 'new-api',
-      status: 'active',
-    }).returning().get();
-
-    const siteLow = await db.insert(schema.sites).values({
-      name: 'low-site',
-      url: 'https://low.example.com',
-      platform: 'new-api',
-      status: 'active',
-    }).returning().get();
-
-    const accountHigh = await db.insert(schema.accounts).values({
-      siteId: siteHigh.id,
-      username: 'user-high',
-      accessToken: 'access-high',
-      apiToken: 'sk-high',
-      status: 'active',
-      unitCost: 1,
-      balance: 100,
-    }).returning().get();
-
-    const accountLow = await db.insert(schema.accounts).values({
-      siteId: siteLow.id,
-      username: 'user-low',
-      accessToken: 'access-low',
-      apiToken: 'sk-low',
-      status: 'active',
-      unitCost: 1,
-      balance: 100,
-    }).returning().get();
-
-    const route = await db.insert(schema.tokenRoutes).values({
-      modelPattern: 'claude-sonnet-4-6',
-      enabled: true,
-    }).returning().get();
-
-    const channelHigh = await db.insert(schema.routeChannels).values({
-      routeId: route.id,
-      accountId: accountHigh.id,
-      tokenId: null,
-      priority: 0,
-      weight: 10,
-      enabled: true,
-    }).returning().get();
-
-    const channelLow = await db.insert(schema.routeChannels).values({
-      routeId: route.id,
-      accountId: accountLow.id,
-      tokenId: null,
-      priority: 0,
-      weight: 10,
-      enabled: true,
-    }).returning().get();
-
-    const router = new TokenRouter();
-    const decision = await router.explainSelectionForRoute(
-      route.id,
-      'claude-sonnet-4-6',
-      [],
-      {
-        allowedRouteIds: [route.id],
-        supportedModels: [],
-        siteWeightMultipliers: {
-          [siteHigh.id]: 4,
-          [siteLow.id]: 1,
-        },
-      },
-    );
-
-    const highCandidate = decision.candidates.find((candidate) => candidate.channelId === channelHigh.id);
-    const lowCandidate = decision.candidates.find((candidate) => candidate.channelId === channelLow.id);
-
-    expect(highCandidate).toBeTruthy();
-    expect(lowCandidate).toBeTruthy();
-    expect((highCandidate?.probability || 0)).toBeGreaterThan(lowCandidate?.probability || 0);
-  });
-
-  it('combines site global weight with downstream site multiplier', async () => {
-    const siteGlobalHigh = await db.insert(schema.sites).values({
-      name: 'global-high-site',
-      url: 'https://global-high.example.com',
-      platform: 'new-api',
-      status: 'active',
-      globalWeight: 3,
-    }).returning().get();
-
-    const siteGlobalLow = await db.insert(schema.sites).values({
-      name: 'global-low-site',
-      url: 'https://global-low.example.com',
-      platform: 'new-api',
-      status: 'active',
-      globalWeight: 1,
-    }).returning().get();
-
-    const accountGlobalHigh = await db.insert(schema.accounts).values({
-      siteId: siteGlobalHigh.id,
-      username: 'user-global-high',
-      accessToken: 'access-global-high',
-      apiToken: 'sk-global-high',
-      status: 'active',
-      unitCost: 1,
-      balance: 100,
-    }).returning().get();
-
-    const accountGlobalLow = await db.insert(schema.accounts).values({
-      siteId: siteGlobalLow.id,
-      username: 'user-global-low',
-      accessToken: 'access-global-low',
-      apiToken: 'sk-global-low',
-      status: 'active',
-      unitCost: 1,
-      balance: 100,
-    }).returning().get();
-
-    const route = await db.insert(schema.tokenRoutes).values({
-      modelPattern: 'gpt-5-mini',
-      enabled: true,
-    }).returning().get();
-
-    const highChannel = await db.insert(schema.routeChannels).values({
-      routeId: route.id,
-      accountId: accountGlobalHigh.id,
-      tokenId: null,
-      priority: 0,
-      weight: 10,
-      enabled: true,
-    }).returning().get();
-
-    const lowChannel = await db.insert(schema.routeChannels).values({
-      routeId: route.id,
-      accountId: accountGlobalLow.id,
-      tokenId: null,
-      priority: 0,
-      weight: 10,
-      enabled: true,
-    }).returning().get();
-
-    const router = new TokenRouter();
-    const decision = await router.explainSelectionForRoute(
-      route.id,
-      'gpt-5-mini',
-      [],
-      {
-        allowedRouteIds: [route.id],
-        supportedModels: [],
-        siteWeightMultipliers: {
-          [siteGlobalHigh.id]: 0.5,
-          [siteGlobalLow.id]: 1,
-        },
-      },
-    );
-
-    const highCandidate = decision.candidates.find((candidate) => candidate.channelId === highChannel.id);
-    const lowCandidate = decision.candidates.find((candidate) => candidate.channelId === lowChannel.id);
-
-    expect(highCandidate).toBeTruthy();
-    expect(lowCandidate).toBeTruthy();
-    // combined multiplier: high=3*0.5=1.5, low=1*1=1
-    expect((highCandidate?.probability || 0)).toBeGreaterThan(lowCandidate?.probability || 0);
   });
 
   it('supports union semantics between supportedModels and allowedRouteIds', async () => {
@@ -356,7 +188,6 @@ describe('TokenRouter downstream policy', () => {
     const policy = {
       allowedRouteIds: [claudeGroupRoute.id],
       supportedModels: ['gpt-4o-mini'],
-      siteWeightMultipliers: {},
     };
 
     const claudePick = await router.selectChannel('claude-opus-4-6', policy);
@@ -400,7 +231,6 @@ describe('TokenRouter downstream policy', () => {
     const policy: any = {
       allowedRouteIds: [route.id],
       supportedModels: [],
-      siteWeightMultipliers: {},
       excludedSiteIds: [site.id],
       excludedCredentialRefs: [],
     };
@@ -480,7 +310,6 @@ describe('TokenRouter downstream policy', () => {
     const policy: any = {
       allowedRouteIds: [route.id],
       supportedModels: [],
-      siteWeightMultipliers: {},
       excludedSiteIds: [],
       excludedCredentialRefs: [
         { kind: 'account_token', siteId: site.id, accountId: blockedAccount.id, tokenId: blockedToken.id },
@@ -547,7 +376,6 @@ describe('TokenRouter downstream policy', () => {
     const policy: any = {
       allowedRouteIds: [route.id],
       supportedModels: [],
-      siteWeightMultipliers: {},
       excludedSiteIds: [],
       excludedCredentialRefs: [
         { kind: 'default_api_key', siteId: site.id, accountId: blockedAccount.id },

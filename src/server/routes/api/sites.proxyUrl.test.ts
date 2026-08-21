@@ -51,7 +51,6 @@ describe('sites proxy settings', () => {
           'x-site-scope': 'internal',
         }),
         externalCheckinUrl: 'https://checkin.example.com/welfare',
-        globalWeight: 1.5,
       },
     });
 
@@ -61,13 +60,11 @@ describe('sites proxy settings', () => {
       useSystemProxy?: boolean;
       customHeaders?: string | null;
       externalCheckinUrl?: string | null;
-      globalWeight?: number;
     };
     expect(payload.proxyUrl).toBe('socks5://127.0.0.1:1080');
     expect(payload.useSystemProxy).toBe(true);
     expect(payload.customHeaders).toBe('{"cf-access-client-id":"site-client-id","x-site-scope":"internal"}');
     expect(payload.externalCheckinUrl).toBe('https://checkin.example.com/welfare');
-    expect(payload.globalWeight).toBe(1.5);
   });
 
   it('returns a conflict response when the same platform and url already exist', async () => {
@@ -152,22 +149,6 @@ describe('sites proxy settings', () => {
 
     expect(response.statusCode).toBe(400);
     expect((response.json() as { error?: string }).error).toContain('Invalid proxyUrl');
-  });
-
-  it('rejects invalid site global weight', async () => {
-    const response = await app.inject({
-      method: 'POST',
-      url: '/api/sites',
-      payload: {
-        name: 'weight-site',
-        url: 'https://weight-site.example.com',
-        platform: 'new-api',
-        globalWeight: 0,
-      },
-    });
-
-    expect(response.statusCode).toBe(400);
-    expect((response.json() as { error?: string }).error).toContain('Invalid globalWeight');
   });
 
   it('rejects invalid external checkin url', async () => {

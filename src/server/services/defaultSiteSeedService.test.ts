@@ -49,7 +49,6 @@ describe('defaultSiteSeedService', () => {
       status: site.status,
       useSystemProxy: site.useSystemProxy,
       isPinned: site.isPinned,
-      globalWeight: site.globalWeight,
       sortOrder: site.sortOrder,
     }))).toEqual([
       {
@@ -59,7 +58,6 @@ describe('defaultSiteSeedService', () => {
         status: 'active',
         useSystemProxy: false,
         isPinned: false,
-        globalWeight: 1,
         sortOrder: 0,
       },
       {
@@ -69,7 +67,6 @@ describe('defaultSiteSeedService', () => {
         status: 'active',
         useSystemProxy: false,
         isPinned: false,
-        globalWeight: 1,
         sortOrder: 1,
       },
       {
@@ -79,7 +76,6 @@ describe('defaultSiteSeedService', () => {
         status: 'active',
         useSystemProxy: false,
         isPinned: false,
-        globalWeight: 1,
         sortOrder: 2,
       },
       {
@@ -89,7 +85,6 @@ describe('defaultSiteSeedService', () => {
         status: 'active',
         useSystemProxy: false,
         isPinned: false,
-        globalWeight: 1,
         sortOrder: 3,
       },
     ]);

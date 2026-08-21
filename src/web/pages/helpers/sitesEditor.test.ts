@@ -25,8 +25,7 @@ describe('buildSiteSaveAction', () => {
         ],
         customHeaders: '{"x-site-token":"alpha"}',
         useSystemProxy: false,
-        globalWeight: 1.2,
-        postRefreshProbeEnabled: true,
+                postRefreshProbeEnabled: true,
         postRefreshProbeModel: 'gpt-4o',
         postRefreshProbeScope: 'single',
         postRefreshProbeLatencyThresholdMs: 2500,
@@ -47,8 +46,7 @@ describe('buildSiteSaveAction', () => {
         ],
         customHeaders: '{"x-site-token":"alpha"}',
         useSystemProxy: false,
-        globalWeight: 1.2,
-        postRefreshProbeEnabled: true,
+                postRefreshProbeEnabled: true,
         postRefreshProbeModel: 'gpt-4o',
         postRefreshProbeScope: 'single',
         postRefreshProbeLatencyThresholdMs: 2500,
@@ -68,8 +66,7 @@ describe('buildSiteSaveAction', () => {
         useSystemProxy: true,
         apiEndpoints: [],
         customHeaders: '',
-        globalWeight: 0.8,
-      },
+              },
     );
 
     expect(action).toEqual({
@@ -84,8 +81,7 @@ describe('buildSiteSaveAction', () => {
         useSystemProxy: true,
         apiEndpoints: [],
         customHeaders: '',
-        globalWeight: 0.8,
-      },
+              },
     });
   });
 
@@ -102,8 +98,7 @@ describe('buildSiteSaveAction', () => {
           useSystemProxy: false,
           apiEndpoints: [],
           customHeaders: '',
-          globalWeight: 1,
-        },
+                  },
       ),
     ).toThrow('editingSiteId is required in edit mode');
   });
@@ -124,8 +119,7 @@ describe('buildSiteSaveAction', () => {
         },
       ],
       customHeaders: '{"x-site-token":"alpha"}',
-      globalWeight: 1,
-      apiKey: 'sk-legacy-site-key',
+            apiKey: 'sk-legacy-site-key',
     } as unknown as Parameters<typeof siteFormFromSite>[0];
 
     expect(emptySiteForm()).not.toHaveProperty('apiKey');
