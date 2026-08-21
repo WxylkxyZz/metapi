@@ -33,6 +33,50 @@ npm run dev          # 后端 :4000 + 前端 :5173
 - 改 `schema.ts` 后必须运行 `npm run schema:generate`。
 - 提交前运行 `npm run repo:drift-check`，必须保持绿色。
 
+## 发布 / 发版
+
+发布流程 = 抬版本号 → 打轻量 tag → push tag 触发 Docker 镜像自动构建发布（`docker-publish` workflow，Docker Hub + GHCR 双推，amd64/arm64 双架构），再创建 GitHub Release 页。
+
+```bash
+# 1. 确认在 main 且工作区干净
+git checkout main && git status --short
+
+# 2. 抬版本号：改 package.json 的 version 字段
+#    git commit -m "chore: bump version to X.Y.Z"   （沿用既有惯例）
+
+# 3. 打轻量 tag 并推送（v 前缀，与历史 v1.0.5 等一致）
+git tag vX.Y.Z
+git push origin vX.Y.Z   # 触发 docker-publish；同 workflow 也会更新 latest
+
+# 4. 创建 GitHub Release 页（展示层，让主页 / Releases 页可见说明）
+gh release create vX.Y.Z --target main --title "vX.Y.Z — <一句话主题>" --notes-file <notes 文件>
+```
+
+注意事项：
+
+- tag 用**轻量 tag**（`git tag vX.Y.Z`，不带 `-a`），与历史一致。tags 页只有 tag 名，**Release 页才是说明展示层**——两者独立，漏建 Release 页不影响镜像发布，但建议都做。
+- push tag 会同时触发 CI、CodeQL、Docker Publish 三个 workflow；Docker Publish 的 Verify job 会重跑 `npm test`，失败可在 Actions 页用 `gh run rerun` 重跑（部分用例有已知的 pre-existing timing flaky）。
+
+Release notes 模板（参考 v1.0.6）：
+
+```markdown
+# vX.Y.Z — <主题>
+
+## 变更
+- <功能 / 修复 A>
+- <功能 / 修复 B>
+
+## 📦 镜像
+- Docker Hub: wxylkxyzz/canopy:vX.Y.Z（同时更新 latest）
+- GHCR: ghcr.io/wxylkxyzz/canopy:vX.Y.Z
+- 架构: linux/amd64 + linux/arm64
+- 部署：启动时自动应用新增迁移
+
+## ✅ 验证
+- 全量测试 / typecheck / drift-check 结果
+- GitHub Actions：CI、CodeQL、Docker Publish 状态
+```
+
 ## License
 
 [MIT](LICENSE) © 2026 WxylkxyZz
